@@ -1,9 +1,12 @@
 ### создание бэкдора через Raspberry Pi ###
+На raspberry можно поставить kali в качестве операционной системы. Можно скачать по ссылке
+https://www.offensive-security.com/kali-linux-arm-images/
+Для записи на кару можно использовать Raspberry Pi Imager
 
 1) на RPi nano /etc/network/interfaces:
 # The primary network interface
-auto ens3
-iface ens3 inet dhcp
+auto eth0 #или другой интерфейс
+iface eth0 inet dhcp
 
 service networking restart
 
@@ -121,6 +124,28 @@ iface br0 inet dhcp
 
 service networking restart
 service networking restart второй раз
+
+
+Проверить, что все работает корректно
+12*) на RPi
+ip a
+Интерфейсы eth0 и tap0 должны иметь "master br0"
+Если на одном из них этого нет, необходимо вручную прописать:
+ip link set tap0 master br0
+
+
+Добавить в автозагрузку
+13*) на RPi
+cd /etc
+nano rc.local
+#!/bin/bash
+screen -dm -S vpn
+openvpn --config /etc/openvpnclient.conf
+exit 0
+
+Что бы остановить клиент, вводим:
+screen -r vpn
+ctrl+c
 
 
 
