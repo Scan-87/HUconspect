@@ -1,0 +1,124 @@
+Virtual Private Server Setup
+
+
+### Базовая конфигурация ###
+
+1) Подключиться к серверу по ssh 
+$ ssh root@<your_server_ip>
+
+
+2) Добавиить пользователя 
+# adduser <username>
+
+
+3) Дать пользователю права sudo 
+# usermod -aG sudo <username>
+
+
+4) Настраиваем нестандартный порт для ssh
+# vim /etc/ssh/sshd_conf
+ 	Port 22 -> Port <61337>
+Можно выбрать любой порт в диапазоне (49152 - 65535)
+# systemctl restart ssh
+Не отключаясь, попробовать подключится по новому порту
+
+
+5) Настраиваем файерволл
+# ufw allow <61337>/tcp		разрешаем доступ по новому порту ssh ДО включения, что бы не заблокроваться
+# ufw enable			включаем файерволл
+# ufw status			просмотреть правила файерволла
+# ufw allow <port>/<protocol>	разрешить подключение по порту
+# ufw delete <номер правила>	удалить правило, выводимое при ufw status под номером
+
+
+6) Настраиваем подключение по ключам
+$ ssh-keygen		генерируем пару ключей на КЛИЕНТЕ
+$ scp ~/.ssh/id_rsa.pub root@<your_server_ip>:/root/.ssh/<laptop>.pub 
+Подключаемся к серверу
+# cd /root/.ssh/
+# cat <laptop>.pub >> authorized_keys
+Не отключаясь, пробуем подключится с ключом
+# vim /etc/ssh/sshd_config
+	PasswordAuthentification no (раскоментировать)
+# systemctl restart ssh
+
+
+7) Разрешаем доступ по ssh для пользователя
+# rsync --archive --chown=<username>:<username> ~/.ssh /home/<username>
+Пробуем подключится под именем пользователя
+
+
+8) Запрещаем доступ от имени рута
+# vim /etc/ssh/sshd_config
+	PermitRootLogin yes -> no
+# systemctl restart ssh
+
+
+9) Добавляем на клиенте alias на подключение
+$ touch ~/.ssh/config
+$ vim ~/.ssh/config
+	Host <My_Super_server>
+	User <username>
+	Port <61337>
+	HostName <your_server_ip>
+
+
+
+
+### Установка и настройка веб-сайта ###
+
+1) Установка apache2
+$ sudo apt update
+$ sudo apt install apache2
+
+
+2) Подправляем файерволл
+$ sudo ufw app list
+$ sudo ufw allow 'Apache Full'
+
+
+3) Настраиваем виртуальные хосты (к этому моменту у нас должно быть куплено доменное имя)
+$ sudo mkdir /var/www/<domain_name>
+$ sudo chown -R $USER:$USER /var/www/<domain_name>
+$ sudo chmod -R 755 /var/www/<domain_name>
+$ sudo vim /var/www/<domain_name>/index.html
+$ sudo vim /etc/apache2/sites-availible/<domain_name>.conf
+	<VirtualHost *:80>
+    		ServerAdmin <name>
+    		ServerName <domain_name>
+    		ServerAlias www.<domain_name>
+    		DocumentRoot /var/www/<domain_name>
+		ErrorLog ${APACHE_LOG_DIR}/error.log
+		CustomLog ${APACHE_LOG_DIR}/access.log combined
+	</VirtualHost>
+$ sudo a2ensite <domain_name>.conf	включаем наш сайт
+$ sudo a2dissite 000-default.conf	отключаем стандартную конфигурацию
+$ sudo apache2ctl configtest		проверяем конфигурацию, все ли в порядке
+$ sudo systemctl restart apache2	
+
+
+4) Готовим площадку для получениия HTTPS
+$ sudo apt install certbot python3-certbot-apache
+$ sudo vim /etc/apache2/sites-availible/<domain_name>.conf
+	...
+	ServerName <domain_name>
+	ServerAlias www.<domain_name>
+	...
+Убедится, что все соответствует
+$ sudo apache2ctl configtest
+$ sudo systemctl reload apache2
+
+
+5) Получение сертификата
+$ sudo certbot --apache
+Скрипт запросит действующую почту, что бы уведомлять о безопасности
+(A)gree/(C)ancel: A
+(Y)es/(N)o: N
+ENTER
+Select the appropriate number [1-2] then [enter] (press 'c' to cancel): 2
+
+
+6) Проверка автоматического обновления Certbot
+$ sudo systemctl status certbot.timer
+$ sudo certbot renew --dry-ru		тестируем автопродление
+Если возникнут проблемы с автообновлением, бот отправит письмо на почту
