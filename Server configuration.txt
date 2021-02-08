@@ -122,3 +122,15 @@ Select the appropriate number [1-2] then [enter] (press 'c' to cancel): 2
 $ sudo systemctl status certbot.timer
 $ sudo certbot renew --dry-ru		тестируем автопродление
 Если возникнут проблемы с автообновлением, бот отправит письмо на почту
+
+
+
+
+
+Ссылки:
+https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-20-04
+https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-20-04
+https://www.digitalocean.com/community/tutorials/how-to-install-the-apache-web-server-on-ubuntu-20-04#step-5-—-setting-up-virtual-hosts-(recommended)
+https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu-20-04-ru
+https://www.reg.ru
+https://cp.vdsina.ru
