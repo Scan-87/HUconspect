@@ -134,3 +134,6 @@ https://www.digitalocean.com/community/tutorials/how-to-install-the-apache-web-s
 https://www.digitalocean.com/community/tutorials/how-to-secure-apache-with-let-s-encrypt-on-ubuntu-20-04-ru
 https://www.reg.ru
 https://cp.vdsina.ru
+
+apache error page:
+https://www.digitalocean.com/community/tutorials/how-to-configure-apache-to-use-custom-error-pages-on-ubuntu-14-04
