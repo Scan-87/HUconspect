@@ -34,6 +34,8 @@ $ ssh root@<your_server_ip>
 6) Настраиваем подключение по ключам
 $ ssh-keygen		генерируем пару ключей на КЛИЕНТЕ
 $ scp ~/.ssh/id_rsa.pub root@<your_server_ip>:/root/.ssh/<laptop>.pub 
+
+
 Подключаемся к серверу
 # cd /root/.ssh/
 # cat <laptop>.pub >> authorized_keys
@@ -137,3 +139,17 @@ https://cp.vdsina.ru
 
 apache error page:
 https://www.digitalocean.com/community/tutorials/how-to-configure-apache-to-use-custom-error-pages-on-ubuntu-14-04
+
+
+
+Nextcloud
+https://bayton.org/docs/nextcloud/installing-nextcloud-on-ubuntu-16-04-lts-with-redis-apcu-ssl-apache/#6-2-enable-caching
+
+Поправка: на этапе настройки redis-сервера, вместо параметра:
+unixsocket /var/run/redis/redis.sock 
+может быть 
+unixsocket /var/run/redis/redis-server.sock
+в таком случае в ../nextcloud/config/config.php
+нужно добавить 
+'host' => '/var/run/redis/redis-server.sock',
+вместо указанного в мануале ../redis.sock
