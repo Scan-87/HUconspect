@@ -153,3 +153,7 @@ unixsocket /var/run/redis/redis-server.sock
 нужно добавить 
 'host' => '/var/run/redis/redis-server.sock',
 вместо указанного в мануале ../redis.sock
+
+
+Php Mysql 
+https://www.tutorialrepublic.com/php-tutorial/php-mysql-insert-query.php
