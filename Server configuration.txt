@@ -157,3 +157,7 @@ unixsocket /var/run/redis/redis-server.sock
 
 Php Mysql 
 https://www.tutorialrepublic.com/php-tutorial/php-mysql-insert-query.php
+
+
+Minecraft Server
+https://www.linuxnorth.org/minecraft/modded_linux.html#Step%205%20-%20Optional--%20Configure%20Minecraft%20to%20start%20on%20bootup
