@@ -1,0 +1,293 @@
+Лабораторная №1
+Настройка VLAN
+
+1) Выбираем свитч и делаем  из него сервер
+SW1(config)#vlan 10,20,30,40,50,60,70
+SW1(config-vlan)#exit
+SW1(config)#do show vlan
+
+SW1(config)#vtp domain hackeru.local
+SW1(config)#vtp version 3
+SW1(config)#exit
+SW1#vtp primary vlan
+
+Нажать  Enter
+
+
+
+Из остальных свитчей делаем клиенты
+SW2(config)#vtp domain hackeru.local
+SW2(config)#vtp version 3
+SW2(config)#vtp mode client
+
+
+
+Настройка Trunk и Access
+На каждом из свитчей: соединение с сетевым оборудованием - trunk, с хостом - access
+SW1(config)#interface range e0/0-2
+SW1(config-if-range)#switchport mode access
+SW1(config-if-range)#switchport access vlan 10
+
+SW1(config)#interface e1/2
+SW1(config-if)#switchport trunk encapsulation dot1q
+SW1(config-if)#switchport mode trunk
+
+SW1(config)#do write
+
+
+
+Настройка Роутера и DHCP сервера
+Would you like to enter the initial configuration dialog? [yes/no]: no
+
+Router(config)#hostname Main_Router
+Main_Router(config)#no service config
+Main_Router(config)#no ip domain lookup
+
+Main_Router(config)#int e0/0
+Main_Router(config-if)#no shutdown
+
+Для каждого VLAN прописываем следующее:
+Main_Router(config)#int e0/0.10
+Main_Router(config-subif)#encapsulation dot1Q 10
+Main_Router(config-subif)#ip address 10.0.10.254 255.255.255.0
+Main_Router(config-subif)#ip dhcp pool VLAN10POOL
+Main_Router(dhcp-config)#network 10.0.10.0 255.255.255.0
+Main_Router(dhcp-config)#default-router 10.0.10.254
+Main_Router(dhcp-config)#dns-server 8.8.8.8 8.8.4.4
+Main_Router(dhcp-config)#exit
+Main_Router(config)#ip dhcp excluded-address 10.0.10.1 10.0.10.9
+Main_Router(config)#ip dhcp excluded-address 10.0.10.101 10.0.10.254
+
+
+
+
+
+Лабораторная №2
+Статическая маршрутизация
+
+Настраиваем маршруты на роутерах
+Router>en
+Router#conf t
+Router(config)#hostname R4-2
+R4-2(config)#int e0/1
+R4-2(config-if)#no shutdown
+R4-2(config-if)#ip addr 10.4.3.2 255.255.255.252
+R4-2(config-if)#int e0/0
+R4-2(config-if)#no shutdown
+R4-2(config-if)#ip addr 10.4.2.1 255.255.255.252
+
+Router(config)#ip route <distanation-network> <mask> <next-hop>
+Router(config)#ip route 10.3.3.0 255.255.255.252 10.4.2.2
+или
+Router(config)#ip route 10.3.3.0 255.255.255.252 e0/1
+
+
+
+ 
+
+Лабораторная №3 
+RIP
+
+Cisco
+Прописываем интерфейсы
+Router>en
+Router#conf t
+Router(config)#int range e0/0-3
+Router(config-if-range)#no shutdown
+Router(config-if-range)#int e0/0
+Router(config-if)#ip addr 172.16.3.2 255.255.255.252
+Router(config-if)#int e0/1
+Router(config-if)#ip addr 172.16.10.1 255.255.255.252
+Router(config-if)#int e0/2
+Router(config-if)#ip addr 172.16.9.1 255.255.255.252
+Router(config-if)#int e0/3
+Router(config-if)#ip addr 172.16.17.1 255.255.255.252
+Router(config-if)#do wr
+
+
+Настраиваем RIP
+Router>en
+Router#conf t
+Router(config)#router rip
+Router(config-router)#no auto-summary
+Router(config-router)#version 2
+Router(config-router)#network 192.168.16.0
+Router(config-router)#network 192.168.10.0
+Router(config-router)#network 192.168.17.0
+Прописываем сети, подключенный к роутеру
+
+или можно сразу подключить все сети
+Router>en
+Router#conf t
+Router(config)#router rip
+Router(config-router)#no auto-summary
+Router(config-router)#version 2
+Router(config-router)#network 192.168.16.0 - любая сеть из соседних
+Router(config-router)#redistribute connected
+!!!Работает не всегда!!!
+
+Проверить можно так:
+
+Router#show ip route
+Router#show ip rip database
+
+
+Mikrotik
+
+Прописываем интерфейсы
+system identity set name=M-RIP-1
+ip address add address=172.16.17.1/24 interface=ether1
+
+Настраиваем RIP186.
+routing rip interface add interface=ether1/all send=v2 receive=v2
+routing rip network add network=172.16.17.0/30
+Прописываем все подключенне сети
+
+
+
+OSPF
+
+Прописываем интерфейсы таким-же образом
+
+На Mikrotik
+?ip dhcp-client 
+?ip dhcp-client remove 0
+ip address add interface=ether1 address=12.12.12.2/30 disabled=no comment="To C-OSPF-5"
+ip address edit number=0 value-name=address
+
+Настраиваем OSPF
+
+Cisco
+Router>en
+Router#conf t
+Router(config)#router ospf 1
+Router(config-router)#network <network> <wildcard> area 0
+Router(config-router)#network 172.16.0.0 <0.0.0.3> area 0
+
+на роутерах, к которым подключены хосты нужно дополнительно прописать 
+Router(config-router)#redistribute connected
+
+Mikrotik
+interface bridge add name=loopback
+ip address add address=10.255.255.5/32 interface=loopback
+в качестве 10.255.255.5 можно взять любой несуществующий адрес
+routing ospf instance set 0 router-id=10.255.255.5
+routing ospf network add network=12.12.15.0/30 area=backbone
+routing ospf network add network=12.12.14.0/30 area=backbone
+прописываем все подключенные сети
+
+
+
+Соединение RIP и OSPF
+
+Main_Router>en
+Main_Router#conf t
+Main_Router(config)#int e1/1
+Main_Router(config-if)#no shutdown
+Main_Router(config-if)#ip addr 192.168.17.2 255.255.255.252
+Main_Router(config-if)#int e1/2
+Main_Router(config-if)#no shutdown
+Main_Router(config-if)#ip addr 172.16.17.2 255.255.255.252
+Main_Router(config-if)#exit
+Main_Router(config)#router rip
+Main_Router(config-router)#version 2
+Main_Router(config-router)#network 192.168.17.0
+Main_Router(config-router)#router ospf 1
+Main_Router(config-router)#network 172.16.17.0 0.0.0.3 area 0
+
+Проброс статических маршрутов
+
+Main_Router(config)#router rip
+Main_Router(config-router)#redistribute static
+Main_Router(config-router)#router ospf 1
+Main_Router(config-router)#redistribute static subnets
+
+Проброс маршрутов RIP в OSPF
+
+Main_Router(config)#router rip
+Main_Router(config-router)#redistribute ospf 1 metric 1
+
+Проброс маршрутов OSPF в RIP
+
+Main_Router(config)#router ospf 1
+Main_Router(config-router)#redistribute rip subnets
+
+Default route - адрес, на который пакет отправляется в том случае, если маршрут к сети назначения пакета не известен. 
+Шлюз по умолчанию задаётся записью в таблице маршрутизации вида «сеть 0.0.0.0 с маской сети 0.0.0.0»
+
+В нашем случае шлюзом будет выступать роутер Main_Router, поэтому следует прописать 8-ми нулевый маршрут до него.
+R4-2(config)#ip route 0.0.0.0 0.0.0.0 10.4.2.2
+R4-1(config)#ip route 0.0.0.0 0.0.0.0 10.4.1.2
+
+
+
+
+
+Лабораторная №4
+BGP
+
+Cisco
+Прописываем интерфейсы
+Router>en
+Router#conf t
+Router(config)#int range e0/0-3
+Router(config-if-range)#no shutdown
+Router(config-if-range)#int e0/0
+Router(config-if)#ip addr 172.16.3.2 255.255.255.252
+Router(config-if)#int e0/1
+Router(config-if)#ip addr 172.16.10.1 255.255.255.252
+Router(config-if)#int e0/2
+Router(config-if)#ip addr 172.16.9.1 255.255.255.252
+Router(config-if)#int e0/3
+Router(config-if)#ip addr 172.16.17.1 255.255.255.252
+Router(config-if)#do wr
+
+Mikrotik
+[admin@MikroTik] >
+[admin@MikroTik] /system identity> set name=M-iBGP-101
+[admin@M-iBGP-101] /system identity> print
+ name: M-iBGP-101
+[admin@M-iBGP-101] > ip address
+[admin@M-iBGP-101] /ip address> add interface=ether1 address=13.1.2.101/24 disabled=no
+[admin@M-iBGP-101] /ip address> add interface=ether2 address=13.1.5.101/24 disabled=no
+[admin@M-iBGP-101] /ip address> add interface=ether3 address=13.1.8.101/24 disabled=no
+[admin@M-iBGP-101] /ip address> add interface=ether4 address=13.1.9.101/24 disabled=no
+[admin@M-iBGP-101] /ip address> add interface=ether5 address=13.1.6.101/24 disabled=no
+[admin@M-iBGP-101] > interface bridge 
+[admin@M-iBGP-101] /interface bridge> add name=loopback0
+[admin@M-iBGP-101] /ip address> add interface=loopback0 address=9.9.9.9/32 disabled=no
+
+
+
+Настраиваем iBGP
+
+Cisco
+router bgp 400
+C-iBGP-102(config-router)#network 13.1.1.0
+C-iBGP-102(config-router)#network 13.1.2.0
+C-iBGP-102(config-router)#network 13.1.3.0
+C-iBGP-102(config-router)#network 16.1.1.0
+C-iBGP-102(config-router)#network 15.1.1.0
+C-iBGP-102(config-router)#neighbor 13.1.1.15 remote-as 400
+C-iBGP-102(config-router)#neighbor 13.1.2.101 remote-as 400
+C-iBGP-102(config-router)#neighbor 13.1.3.28 remote-as 400
+
+sh ip bgp summary
+
+Mikrotik
+[admin@M-iBGP-101] > routing bgp instance
+[admin@M-iBGP-101] /routing bgp instance > set default as=400 router-id=9.9.9.9
+[admin@M-iBGP-101] > routing bgp network
+[admin@M-iBGP-101] /routing bgp network> add network=13.1.2.0/24
+[admin@M-iBGP-101] /routing bgp network> add network=13.1.5.0/24
+[admin@M-iBGP-101] /routing bgp network> add network=13.1.8.0/24
+[admin@M-iBGP-101] /routing bgp network> add network=13.1.9.0/24
+[admin@M-iBGP-101] /routing bgp network> add network=13.1.6.0/24
+[admin@M-iBGP-101] > routing bgp peer
+[admin@M-iBGP-101] /routing bgp peer> add name=peer1 remote-address=13.1.2.102 remote-as=400 route-reflect=yes
+[admin@M-iBGP-101] /routing bgp peer> add name=peer2 remote-address=13.1.6.28 remote-as=400 route-reflect=yes
+[admin@M-iBGP-101] /routing bgp peer> add name=peer3 remote-address=13.1.5.15 remote-as=400 route-reflect=yes
+[admin@M-iBGP-101] /routing bgp peer> add name=peer4 remote-address=13.1.8.23 remote-as=400 route-reflect=yes
+[admin@M-iBGP-101] /routing bgp peer> add name=peer5 remote-address=13.1.9.33 remote-as=400 route-reflect=yes
+
+
