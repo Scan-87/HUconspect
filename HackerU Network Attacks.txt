@@ -883,4 +883,16 @@ Silver Ticket
 
 Занятие 8
 
+Материалы от Павла по повышению привилегий на винде
 powerapp - скрипт дял повышения привелегий и ошибок конфигурации
+https://github.com/AlessandroZ/BeRoot.git
+https://github.com/bitsadmin/wesng - python wes.py SYSINFO-FILE --exploits-only --impact "Elevation of Privilege"
+https://github.com/hlldz/dazzleUP - Auto check CVE and missconfigs
+https://github.com/SecWiki/windows-kernel-exploits - бинари
+https://github.com/WindowsExploits/Exploits?files=1 - бинарники под cve
+https://github.com/nomi-sec/PoC-in-GitHub - PoC по CVE
+https://xakep.ru/2017/06/30/windows-privilege-bypass/
+https://docs.google.com/document/d/1U10isynOpQtrIK6ChuReu-K1WHTJm4fgG3joiuz43rw/edit#
+https://github.com/rasta-mouse/Sherlock
+https://medium.com/@rahmatnurfauzi/windows-privilege-escalation-scripts-techniques-30fa37bd194
+https://pentestlab.blog/tag/local-exploits/ 
