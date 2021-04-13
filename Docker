@@ -1,0 +1,4 @@
+Клонировать контейнер со всеми настройками
+$ docker stop <test1>
+$ docker commit <test1> <test2>
+
