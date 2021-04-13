@@ -2,3 +2,5 @@
 $ docker stop <test1>
 $ docker commit <test1> <test2>
 
+Создаем новый контейнер из клонированного образа
+$ docker run -p 80:80 -td <test2>
