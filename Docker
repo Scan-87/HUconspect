@@ -4,3 +4,10 @@ $ docker commit <test1> <test2>
 
 Создаем новый контейнер из клонированного образа
 $ docker run -p 80:80 -td <test2>
+
+Создаем контейнер
+$ docker run --name <container name> -p <host>:<container> -d -it <ubuntu:latest>
+-d  запустить в фоне и не дропать после выхода из шела
+
+Коннектимся к контейнеру
+$ docker exec -it <container name> /bin/bash
