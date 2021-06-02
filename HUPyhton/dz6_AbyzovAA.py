@@ -2,6 +2,8 @@ import bs4
 import requests
 import os
 
+file = open("parse.txt", "w")
+
 page = requests.get("https://babybug.ru/brendy/melissa/").text
 
 #print(page)
@@ -26,6 +28,10 @@ for goods in div.find_all("div", class_="catalog-item item-wrapper"):
         price = b.text
     all.append((name, price.splitlines()[-1].lstrip().rstrip(), "https://babybug.ru" + link))
 
-print(all)
-    #print(f"{name}, {price.splitlines(True)[-1].lstrip().rstrip()}, https://babybug.ru{link}")
+#print(all)
+    file.write(f"{name}, {price.splitlines(True)[-1].lstrip().rstrip()}, https://babybug.ru{link}\n")
 
+#for lines in all:
+#    file.write(lines)
+
+file.close()
