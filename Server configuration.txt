@@ -163,6 +163,23 @@ Minecraft Server
 https://www.linuxnorth.org/minecraft/modded_linux.html#Step%205%20-%20Optional--%20Configure%20Minecraft%20to%20start%20on%20bootup
 
 
+Docker
+Установка
+$ sudo apt update
+$ sudo apt install apt-transport-https ca-certificates curl software-properties-common
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+$ sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+$ sudo apt update
+$ apt-cache policy docker-ce
+$ sudo apt install docker-ce
+
+
+*Проблема при установке на Ubuntu Server
+Process: 22879 ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock (code=exited, status=1/FAILURE)
+Решение
+# ip link add name docker0 type bridge
+# ip addr add dev docker0 172.17.0.1/16
+
 
 OpenVPN
 
