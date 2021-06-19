@@ -177,3 +177,14 @@ add:	client-config-dir /etc/openvpn/ccd
 # touch <client name> 
 add:	ifconfig-push <static ip> 255.255.255.0
 $ reboot
+
+Автоподключение клиента
+$ sudo vim /etc/default/openvpn
+uncoment	AUTOSTART="all"
+$ cp <file.ovpn> /etc/openvpn/
+$ mv /etc/openvpn/<file.ovpn> /etc/openvpn/client.conf
+$ sudo systemctl enable openvpn@client.service
+$ sudo systemctl daemon-reload
+$ sudo service openvpn@client start
+
+
