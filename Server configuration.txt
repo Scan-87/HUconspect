@@ -161,3 +161,19 @@ https://www.tutorialrepublic.com/php-tutorial/php-mysql-insert-query.php
 
 Minecraft Server
 https://www.linuxnorth.org/minecraft/modded_linux.html#Step%205%20-%20Optional--%20Configure%20Minecraft%20to%20start%20on%20bootup
+
+
+
+OpenVPN
+
+Развертывание в Docker
+https://github.com/kylemanna/docker-openvpn
+
+Статическая адресация
+$ docker exec -it <name> /bin/sh
+# vi <openvpn>.conf 	
+add:	client-config-dir /etc/openvpn/ccd
+# cd /etc/openvpn/ccd
+# touch <client name> 
+add:	ifconfig-push <static ip> 255.255.255.0
+$ reboot
