@@ -205,3 +205,8 @@ $ sudo systemctl daemon-reload
 $ sudo service openvpn@client start
 
 
+SSH Tunneling (проброс порта)
+https://www.devdungeon.com/content/expose-local-port-over-remote-vps-ssh-remote-port-forwarding
+
+
+
