@@ -1199,6 +1199,11 @@ cd Window\System32
 mount /dev/<sda2> /media/diskC/
 cd /media/diskC/Window/System32
 cp cmd.exe sethc.exe (лучше сделать бэкап оригинального файла)
+2.2.1)Если не получается записать на диск
+$ mount -o remount,ro /media/diskC
+$ ntfsfix /dev/<sda2> 
+$ mount -o remount,rw /media/diskC
+
 
 3) Подменяем бинарник, запускающий функции на окне авторизации на cmd.exe
 Для этого надо загрузится с флешки, и скопировать файл
