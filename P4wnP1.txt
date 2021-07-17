@@ -1,0 +1,196 @@
+P4wnP1
+
+
+
+Подключение
+
+Wi-Fi 
+P@WNP1 MaMe82-P4wnP1
+ssh root@172.24.0.1 toor
+http://172.24.0.1:8000
+
+USB Ethernet
+ssh root@172.16.0.1 toor
+http://172.16.0.1:8000
+
+
+
+Печать и нажатия
+
+# P4wnP1_cli hid run -c 'type("Hello world")'		Печать
+# P4wnP1_cli hid run -c 'type("Hello\nworld")'	С переносом строки
+
+# P4wnP1_cli hid run -c 'press("CTRL ALT DELETE")'	Нажатие клавиш
+# P4wnP1_cli hid run -c 'press("A")'			Напечатает 'a'
+# P4wnP1_cli hid run -c 'press("SHIFT A")'		Напечатает 'A'
+
+# P4wnP1_cli hid run -c 'type ("before caps\n"); press("CAPS"); type("after caps\n"); press("CAPS");'
+
+
+
+Специальные клавиши
+CTRL  == LEFT_CTRL
+RIGHT_CTRL
+ALT   == LEFT_ALT
+RIGHT_ALT
+SHIFT == LEFT_SHIFT
+WIN   == GUI == LEFT_GUI
+BACKSPACE
+ENTER == RETURN
+
+
+
+Скорость печати 
+# P4wnP1_cli hid run -c 'typingSpeed(100,150); type("hello")'	Скорость печати (задержка, верхний порог рандомной доп. задержки)
+
+
+
+Web интерфейс
+HIDSCRIPT
+
+
+
+
+
+Функция waitLED
+
+waitLED аргументы
+ANY		любой LED
+ANY_OR_NONE	любое LED систояние, даже без изменений
+NUM		NUM LED
+CAPS		CAPS LED
+SCROLL		SCROLL LED
+CAPS | NUM 	можно комбинировать
+
+
+Ожидание нажатия NUM 
+# P4wnP1_cli hid run -c 'waitLED(NUM); type("\nYay")'
+
+
+return waitLED(ANY);		Выведет первую нажатую клавишу с LED индикатором и закончит работу
+
+
+Скрипт определяет нажатия NUM и печатает текст по каждому рсабатыванию
+while (true) {
+  result = waitLED(ANY);
+  if (result.NUM) {
+    type("NUM has been toggled\n");
+  }
+  if (result.SCROLL) {
+    type("SCROLL has been pressed\n");
+  }
+  if (result.CAPS) {
+    break; //exit loop
+  }
+}
+
+
+
+
+
+Обнаружение подключения к устройству (требуется внешний источник питания)
+# P4wnP1_cli hid run -c 'while (true) {waitLED(ANY_OR_NONE);type("Attached\n");}'
+
+
+
+
+
+Для запуска скрипта только после многократного нажатия на LED клавиши
+waitLEDRepeat(ANY)
+
+Конфигурация 
+filter = ANY;		// какой индикатор
+num_changes = 5;	// сколько раз индикатор должен измениться
+max_delay = 800;	// максимальаня задержка между нажатиями
+timeout = 10000;	// время ожидания
+waitLEDRepeat(filter, num_changes, max_delay);		// ждем 5 нажатий 
+waitLEDRepeat(filter, num_changes, max_delay, timeout);	// ждем 5 нажатий, или отменяем через 10 секунд
+
+
+
+
+
+Пример запись в блокнот
+
+press("WIN R");		// run dialog
+delay(500);			// wait for dialog to open
+type("notepad.exe\n");		// type to the dialog
+delay(2000);			// wait for notepad to start
+
+type("Hello world");		// type into the notepad
+waitLED(ANY);			// close notepad after LED change
+press("ALT F4");
+
+delay(500);
+press("RIGHT");		// move focus to button "don't save"
+press("SPACEBAR");		// confirm
+
+Сохраняем через кнопку 'STORE' как test1
+
+
+
+Выполнить сохраненную команду через консоль
+# P4wnP1_cli hid run test1.js
+
+
+
+
+
+Триггеры
+
+TRIGGER ACTIONS
+ADD ONE
+
+Активируем через 'Enable'
+В Trigger выбираем источник события
+В Action выбираем действие 
+
+'write log entry' можно просмотреть на вкладке EVENT LOG
+
+'One shot' отработает только один раз. После этого триггер нужно будет включить заново
+
+'LOAD & REPLACE'	очищает все несохраненные тригеры и загружает сохраненные
+'LOAD & ADD'		добавляет к несохраненным тригерам триггеры из памяти
+
+
+
+Работа с триггерами через cli
+
+# P4wnP1_cli template deploy -h		справка
+# P4wnP1_cli template deploy -t test1		активация набора триггеров test1
+
+
+
+
+
+Конфигурация USB устройства
+# P4wnP1_cli usb set -h
+
+'USB SETTINGS'
+
+# P4wnP1_cli template deploy --usb test1
+
+
+
+Master settings 
+Параметры по умолчанию
+
+'GENERIC SETTINGS'
+
+# P4wnP1_cli template deploy --full test1
+
+ВАЖНО!!!
+некорректная настройка может сломать загрзку P4wnP1
+
+Правильная настройка:
+1. Master Template Editor
+2. Установить нужный 'TriggerAction Template' и 'USB template'
+3. Для WiFi и Bluetooth выбрать конфиг 'startup'
+4. Для 'Network Templates' выбрать 'bteth_startup', 'usbeth_startup', 'wlan0_startup_dhcp_server'
+5. Проверить, что все незадействованные настройки выставлены в 'startup'
+6. Сохранить нконфиг через Store
+7. Проверить все еще раз, нажать Load Stored, выбрать нужный конфиг
+8. Startup Settings, выбираем нужный конфиг 
+9. Перезагружаемся нажав reboot
+
+
