@@ -1,0 +1,14 @@
+# отключение автопробуждения при движении мыши
+1. Определить имя девайса командами
+$ cat /sys/bus/usb/devices/*/power/wakeup
+$ ls  /sys/bus/usb/devices/*/power/wakeup
+Устройтсва ввода будут иметь статус enabled
+2. Экспериментальным путем, меняем enabled на disabled, что бы точно узнать имя устройства
+3. Добавляем запись в /etc/rc.local
+  #!/bin/sh
+  #mouse movement wake up disable
+  echo disabled > /sys/bus/usb/devices/1-10/power/wakeup
+  exit 0
+
+
+
