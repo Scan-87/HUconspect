@@ -194,3 +194,15 @@ Master settings
 9. Перезагружаемся нажав reboot
 
 
+
+Создать usb хранилище
+# cd /usr/local/P4wnP1/helper
+# ./genimg -i -s <1024> -o <1GB_storage> -l /tmp
+
+
+
+При создании резервной копии, база данных лежит в 
+/usr/local/P4wnP1/db/
+
+Скрпты нужно копировать отдельно из
+/usr/local/P4wnP1/HIDScripts/
