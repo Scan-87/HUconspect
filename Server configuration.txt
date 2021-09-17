@@ -130,6 +130,8 @@ $ letsencrypt certificates
 $ letsencrypt --apache --cert-name <cert name> -d <old.com> -d <www.old.com> -d <sub.old.com>
 (U)pdate cert/(C)ancel: U
 
+
+
 7) Настройка web proxie на apache
 добавить в /etc/apache/sites-available/site-se-ssl.conf
 <VirtualHost *:443>
@@ -150,6 +152,8 @@ Include /etc/letsencrypt/options-ssl-apache.conf
 SSLCertificateFile /etc/letsencrypt/live/<example.com>/fullchain.pem
 SSLCertificateKeyFile /etc/letsencrypt/live/<example.com>/privkey.pem
 </VirtualHost>
+
+
 
 8) Проблема с webDAVS nextcloud
 добавить в /etc/apapche/sites-available/site-se-ssl.conf
