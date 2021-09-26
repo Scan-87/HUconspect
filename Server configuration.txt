@@ -164,6 +164,14 @@ RewriteRule ^/\.well-known/carddav https://cloud.<example.com>/remote.php/dav/ [
 RewriteRule ^/\.well-known/caldav https://cloud.<example.com>/remote.php/dav/ [R=301,L]
 
 
+9) доступ через клиент к Nextcloud за reverse proxy
+На сервере, где развернут nextcloud:
+В /var/www/html/config/config.php добавить
+
+'overwritehost' => 'cloud.example.com',
+'overwriteprotocol' => 'https',
+
+
 
 Ссылки:
 https://www.digitalocean.com/community/tutorials/how-to-set-up-ssh-keys-on-ubuntu-20-04
