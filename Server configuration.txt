@@ -168,7 +168,7 @@ RewriteRule ^/\.well-known/caldav https://cloud.<example.com>/remote.php/dav/ [R
 На сервере, где развернут nextcloud:
 В /var/www/html/config/config.php добавить
 
-'overwritehost' => 'cloud.example.com',
+'overwritehost' => 'cloud.example.com:443',
 'overwriteprotocol' => 'https',
 
 
