@@ -225,6 +225,7 @@ Process: 22879 ExecStart=/usr/bin/dockerd -H fd:// --containerd=/run/containerd/
 # ip addr add dev docker0 172.17.0.1/16
 
 
+
 OpenVPN
 
 Развертывание в Docker
@@ -247,6 +248,22 @@ $ mv /etc/openvpn/<file.ovpn> /etc/openvpn/client.conf
 $ sudo systemctl enable openvpn@client.service
 $ sudo systemctl daemon-reload
 $ sudo service openvpn@client start
+
+Подключение без перенаправления трафика с устройства
+OpenVPN подключение без перенаправления трафика
+$ sudo touch /etc/openvpn/ovpn-routing.sh
+	#!/bin/bash
+	ip route add 192.168.255.0/24 via 192.168.255.22
+	
+<192.168.255.0> - openvpn internal network
+<192.168.255.22> - device ip address inside the VPN
+$ sudo vim /etc/openvpn/openvpn.conf
+до части <key> добавить:
+	route-noexec
+	script-security 2 
+	up ovpn-routing.sh
+$ sudo service openvpn restart
+
 
 
 SSH Tunneling (проброс порта)
