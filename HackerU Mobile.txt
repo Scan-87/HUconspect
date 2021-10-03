@@ -1,0 +1,504 @@
+Занятие 1
+Android app
+
+Курс по java
+https://www.youtube.com/watch?v=U3abRrhDl9c&list=PLoij6udfBnchI9V8WL1wbK67hfuJM9efz 
+
+
+
+Настройка среды:
+
+ВАЖНО!!!
+Добавить /home/name/Android/Sdk/platform-tools в PATH
+
+и снять галочку reopen on startup
+
+и поставить 28 версию API 
+
+Создать виртуальное устройство (отстутствие треугольничка - root drvice)
+
+Pixel 4 XL (без треугольника), 28 API, 
+
+
+
+Шелл эмулятора
+$ adb shell
+$ su
+
+В андроид каждое приложение имеет свою папку, за пределы которой оно не может выходить
+
+Обычно приложение называют в соответствии с логикой построения адреса  website. 
+com.clash-of-clans.app
+
+имя приложения == имя его package
+
+имя package - уникально
+
+/data/data - установка приложений
+
+
+
+./shared_prefs	- папка в проекте, где иногда хранят чувствительную информацию
+
+
+
+Работа с хранилищем 
+
+Отобразить место установки приложения
+$ pm list packages
+$ pm path com.google.android.youtube
+
+Вытащить файл из android устройства
+$ adb pull </system/app/YouTube/YouTube.apk>
+
+Загрузить файл на android устройство
+$ adb push 
+
+Дириктория с пользовательскими файлами
+/sdcard 
+
+
+
+... на панели рядом с эмулятором - настройки эмулятора
+можно настроить номер телефона, геолокацию и т п
+
+
+
+apkcombo.com	сайт, где можно скачать apk под разные архитектуры
+
+желаетльно ставить приложение sberbank на отдельный телефон, нежели тот аппарат, на который приходит код подтверждения
+
+
+
+Большинство приложений пишут на Kotlin / Java
+
+
+
+Jadix (reverse engenering)
+
+https://github.com/skylot/jadx/releases
+(если java уже стоит, то выбираем nojre)
+$ cd jadix-1.2.0/bin
+$ ./jadix-gui <path to apk>
+
+
+
+Android studio аналог jadix
+https://developer.android.com/studio/build/apk-analyzer 
+
+
+
+AndroidManifest.xml	список разрешений, котоыре есть у приложения, package...
+
+
+
+ДЗ добавить adb в path
+adb install .apk
+
+
+
+
+
+Занятие 2
+
+компоненты приложения:
+Activity 		(активность, операция, деятельность)
+Service 		(служба)
+BroadcastReceiver 	(приемщик широковещательных сообщений)
+ContentProvider 	(поставщик содержмого)
+
+
+
+$ adb install <release>.apk
+$ adb devices			список подключенных устройств
+
+
+Activity
+
+findViewById()
+View 
+
+Все компоненты приложения должны быть объявлены в manifest
+<activity .../>
+Некоторые актвности могут иметь категорию launcher (их значок появится на глвном экране)
+
+exported='true' означает, что стороннее приложение может вызывать элементы прложения
+
+До 12 версии android, если видим <intent-filter>, то актвность по умолчанию экспортируемая
+
+
+Запуск экспортруемого компонента через adb shell
+:/ $ am start -n com.grooming.mtop10/com.grooming.mtop10.ExportedActivity
+
+Редактиироване параметров 
+:/ $ am start -n com.grooming.mtop10/com.grooming.mtop10.ExportedActivity -e "p1" "one" -e "p2" "two"
+
+
+Актвность заморажвается при наслоении на нее других активностей:
+играли в игру -> на телефон позвонили -> игра встала на паузу
+
+В новых версях активности строят из фрагментов
+
+
+
+Service
+
+бывают local и remote
+
+
+
+.something - адрес отностельно package name
+
+
+
+BroadcastReciever
+если ресвер открыт, он ловит сигналы системы (низкий заряд, включена геолокация  тп)
+
+
+
+
+
+Занятие 3
+
+ContentProviders
+Поставляют данные для приложения 
+
+<provider 
+...
+...
+android:exported="true">
+</provider>
+
+adb shell content query --uri content://com.grooming.mtop10.provider.temporarycontentprovider/users
+
+
+
+В jadx CTRL + click по названию класса (com.groom...) переносит нас на вкладку с классом
+
+
+
+Uri CONTENT_URI 
+
+
+Для подключения старого устройства может потребоваться Google SDK driver
+
+
+
+Разработка
+activity_main.xml - файл со всеми графическими элементами
+
+Palette 	- набор элементов
+Component Tree	- элементы на экране
+Attributes 	- параметры элементов
+
+Удалить привязку из Component Tree - CTRL + click
+
+CTRL + space 	- автозаполнение
+
+
+Создание еще одной активности
+ПКМ Java -> com.<...> -> New -> Activity -> Empty Activity
+
+
+
+
+
+Занятие 4
+
+Создание фрагмента
+ПКМ Java -> com.<...> -> New -> Fragment -> Fragment(blank)
+
+в папке values хранятся файлы с параметрами и их значениями
+strings.xml
+
+Можно добавить параметр в этот файл
+ALT + ENTER -> extract resourse
+
+там-же можно добавить локализации
+
+
+
+Сборка приложения
+Build -> Generate signed bundle or apk -> APK ->
+
+
+
+APKtool
+https://ibotpeaches.github.io/Apktool/install
+ 
+Разобрать apk на исходники
+$ ./apktool d ~/.../application.apk 
+
+Пересобрать (после этого нужно переподписать)
+$ ./apktool b csr32-app-release/ -o hacked.apk
+
+Для переподписи нужно сгенерировать ключ (будет достаточно одного сразу для всех проектов)
+$ jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore ~/Desktop/Android_apps/Keys/hacker_key.store hacked.apk key0
+
+пароль для ключа hacked_key.store - 123456
+
+
+
+
+
+Занятие 5
+
+smali (что-то похожее на ассемблер для андроид)
+в jadx можно открыть smali код внизу окна вкладка smali
+
+регистры p и v - это одни и те-же регистры
+
+Мы меняем smali так как это единственный доступный нам вид исходника
+
+строчка кода на джаве может быть предствлена целой страницей на smali
+
+
+if-eqz	условие верное
+if-nez	условие инвертированное
+
+
+алтерантива jadx - APKLab в Visual Studio Code
+
+Просмотреть гайд по анализу уязвимостей
+OWASP mobile security testing guide
+
+
+
+
+
+Занятие 6
+CTF
+
+
+
+
+
+Занятие 7
+
+source venv/bin/activate
+
+ДЗ сделать и выложить в лмс
+
+
+
+
+
+Занятие 8
+
+Для проксирования https трафика, необходимо поставить сертификат девайса посередине
+
+Simple pinning - все сертификаты лежат в приложении, в res/xml или в res/raw
+Все серты захардкожены в android manifest
+
+чекнуть, что мы сделали 20:42
+
+
+Подсказка к дз:
+что бы попасть ан 3 активность, приложение проверяет свою подпись
+
+
+
+Frida
+$ pip3 install frida-tools
+
+Скачать и распаковать сервер под нужный CPU смартфона
+https://github.com/frida/frida/releases
+frida-server-<15.0.19>-android-x86.xz
+
+Загружаем на телефон
+$ adb root
+$ adb push <frida-server> /data/local/tmp
+$ adb shell
+Android # cd /data/local/tmp
+Android # chmod +x <frida-server> 
+Android # ./<frida-server>
+
+Проверка работоспособности
+$ frida-ps -U
+
+Запуск
+$ frida -U -f com.android.application 
+-> %resume
+
+
+
+Скрипт для извлечения данных классов (вставляем в frida)
+Java.perform(function() {
+  Java.enumerateLoadedClasses({
+    onMatch: function(className) {      
+      if(className.includes("insecurebankv2")){
+        console.log(className);
+        //console.log("you are hacked");    
+      }
+  },
+    onComplete: function() {}
+});
+});
+
+Скрипт для изменения функционала
+Java.perform(function() {
+  var PostLogin = Java.use("com.android.insecurebankv2.PostLogin");  
+  PostLogin.doesSUexist.implementation = function(){    
+    var retval = true;    
+    return retval;
+  };
+});
+
+
+
+
+frida позволяет менять логику работы без патчинга
+
+Мануалка
+https://frida.re/docs/quickstart/
+
+
+
+
+
+Android ДЗ killchain
+vim remove-ads/smali/com/hackeru/reversetask/SecondActivity.smali
+
+
+vim remove-ads/res/layout/activity_first.xml
+	android:visibility="gone"	удалить элемент/рекламу
+	android:visibility="visible"	отобразить скрытый элемент
+	
+vim remove-ads/AndroidManifest.xml
+	CTRL + F com.google.android.gms.ads	ищем рекламу ads
+	Далее ищем по всем файлам обнаруженый тег (ca-app-pub-32...)
+	Вырезаем в smali коде
+	
+vim remove-ads/smali/com/hackeru/reversetask/SecondActivity.smali
+	if-eqz меняем на if-nez	теперь будет открываться при инвертированной подписи
+	см презентацию к занятию 5
+	
+	
+	
+	
+	
+Занятие 9
+$ source venv/bin/activate
+
+Инструмент для статического реверса
+$ sudo docker run -it --rm -p 8000:8000 opensecurity/mobile-security-framework-mobsf:latest
+
+Инструмент топового андроид-реверсера
+https://blog.oversecured.com/Android-Access-to-app-protected-components/
+
+
+Еще инструменты кроме frida:
+xposed-framework
+drozer
+
+По всем вопросам - 4PDA
+
+
+
+
+
+Занятие 10 (IOS)
+IOS - невозможно найти исходные коды
+
+https://github.com/prateek147/DVIA-v2
+
+Owasp top 10
+M1 злоупотребление возможностями платформы
+M2 небезопасное хранение данных
+M3 Незакрытые коммуникации
+M4 Слабая аутентификация 
+M5 Нестойкая криптография
+M6 Слабая аутентификация
+M7 Качество програмного кода
+M8 Внедрение вредоносного кода
+M9 Обратная разработка
+M10 Внешние зависимости
+
+Этапы защиты Apple
+iDevice Hardware	чип, который хранит ключи  
+iOS Operating System
+iOS Applications
+
+
+языки программирования:
+Objective C, Swift
+
+
+
+
+
+Занятие 11
+
+
+
+Просмотр содержимого приложения
+1. unzip app.ipa
+2. cd Payload
+3. cd <name>.app
+4. show content
+
+
+
+embeded.mobileprovision - информация о разработчике, разрешения приложения, ключи шифрования, список устройств, на которых запустится устройство
+
+% strings AppName - отобразить строки из исполняемого файла
+
+info.plist - урезаный аналог AndroidManifest, только права приложения записаны в mobileprovision
+
+Model.momd - отображение модели базы данных
+
+en.lproj - файлы локализации
+
+Podfile - зависимости
+
+.xcodeworkspace - исходник для открытия в xcode
+
+hieracity view - трехмерное отображение структуры приложения
+
+
+
+Анатомия приложения
+
+
+
+
+
+Занятие 12
+
+в IOS приложения имеют свои схемы (skype://, tel://...)
+иногда можно в эти схемы подставить параметры и совершить действие без подтверждения со стороны пользователя
+google: ios + url schema + appdelegation
+
+
+
+Книги и проекты:
+от NAND до tetris - сборка компа с низкого уровня
+
+
+
+
+
+Занятие 13
+
+jailbreak:
+
+привязанный - для установки нужен компьютер с кабелем. Очень трудно предотвращать, но каждый раз нужно подключать к компу при 
+перезагрузке (до iphone 4)
+
+не привязанный - не нужно подключать к компу. самый крутой, но самый редкий
+
+частично непривязанный - для переустановки не нужен кабель
+
+
+
+checkra1n - устанавливается через кабель
+
+uncover - .ipa файл
+
+
+
+Установка
+checkra.in
+unc0ver.dev
+
+
