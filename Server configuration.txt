@@ -271,3 +271,9 @@ https://www.devdungeon.com/content/expose-local-port-over-remote-vps-ssh-remote-
 
 
 
+Резервное копирование:
+первый раз
+# duplicity full --exclude=/proc --exclude=/sys --exclude=/dev --exclude=/proc --exclude=/sys --exclude=/mnt --exclude=/media --exclude=/tmp --exclude=/var/spool --exclude=/var/cache --exclude=/var/tmp --exclude=/swap / webdavs://<username>:<pass>@cloud.scan-87.online:443/remote.php/dav/files/<username>/backup
+
+https://serveradmin.ru/backup-linux-servera-s-pomoshhyu-duplicity/
+
