@@ -271,9 +271,24 @@ https://www.devdungeon.com/content/expose-local-port-over-remote-vps-ssh-remote-
 
 
 
-Резервное копирование:
-первый раз
-# duplicity full --exclude=/proc --exclude=/sys --exclude=/dev --exclude=/proc --exclude=/sys --exclude=/mnt --exclude=/media --exclude=/tmp --exclude=/var/spool --exclude=/var/cache --exclude=/var/tmp --exclude=/swap / webdavs://<username>:<pass>@cloud.scan-87.online:443/remote.php/dav/files/<username>/backup
+Резервное копирование Duplicity:
+Без шифрования
 
+первый раз
+# duplicity full --exclude=/proc --exclude=/sys --exclude=/dev --exclude=/proc --exclude=/sys --exclude=/mnt --exclude=/media --exclude=/tmp --exclude=/var/spool --exclude=/var/cache --exclude=/var/tmp --exclude=/swap / webdavs://<username>:<pass>@cloud.scan-87.online:443/remote.php/dav/files/<username>/backup --no-encryption -v 9
+
+последующие
+# duplicity incremental --exclude=/proc --exclude=/sys --exclude=/dev --exclude=/proc --exclude=/sys --exclude=/mnt --exclude=/media --exclude=/tmp --exclude=/var/spool --exclude=/var/cache --exclude=/var/tmp --exclude=/swap / webdavs://<username>:<pass>@cloud.scan-87.online:443/remote.php/dav/files/<username>/backup --no-encryption -v 9
+
+восстановление
+# duplicity --no-encryption --file-to-restore / webdavs://<username>:<pass>@cloud.scan-87.online:443/remote.php/dav/files/<username>/backup /restore -v 9
+
+проверка
+# duplicity collection-status --no-encryption webdavs://<username>:<pass>@cloud.scan-87.online:443/remote.php/dav/files/<username>/backup -v 9
+
+
+базовые команды
 https://serveradmin.ru/backup-linux-servera-s-pomoshhyu-duplicity/
 
+настройка шифрования
+https://www.digitalocean.com/community/tutorials/how-to-use-duplicity-with-gpg-to-securely-automate-backups-on-ubuntu
