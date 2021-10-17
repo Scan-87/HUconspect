@@ -266,6 +266,11 @@ $ sudo service openvpn restart
 
 
 
+Освободить порт 53
+https://www.qualityology.com/tech/ubuntu-port-53-already-in-use-how-to-free-the-dns-port/
+
+
+
 SSH Tunneling (проброс порта)
 https://www.devdungeon.com/content/expose-local-port-over-remote-vps-ssh-remote-port-forwarding
 
