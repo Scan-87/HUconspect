@@ -41,6 +41,8 @@ $ git clone https://github.com/yarrick/iodine.git
 $ make 
 $ sudo make install
 # iodine -f -P <PassPhrase> t.<example.com>
+$ ssh -ND 31337 root@192.168.32.1 -p <2222>                 поднимаем проксирование через ssh (вывода не будет)
+$ curl -x socks5h://127.0.0.1:31337 http://httpbin.org/ip   проверяем соединение, далее можем добавить адрес в FoxyProxy
 
 
 
