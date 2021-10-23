@@ -33,3 +33,12 @@ Server:
 # screen -S iodine      //optional
 # iodined -f -c -P <PassPhrase> 192.168.32.1/24 t.<example.com>
 
+Client:
+$ git clone https://github.com/yarrick/iodine.git
+$ make 
+$ sudo make install
+# iodine -f -P <PassPhrase> t.<example.com>
+
+
+
+DnsCat2
