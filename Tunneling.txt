@@ -9,6 +9,9 @@ DNS tunneling
 
 https://www.qualityology.com/tech/ubuntu-port-53-already-in-use-how-to-free-the-dns-port/
 
+Просмотреть порты:
+# lsof -i -P | grep LISTEN
+# netstat -tunlp
 
 
 Доменные записи:
