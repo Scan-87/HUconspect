@@ -1,0 +1,35 @@
+DNS tunneling
+
+Освободить порт 53:
+# vim /etc/systemd/resolved.conf
+    DNS=8.8.8.8
+    DNSStubListener=no
+# ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+# reboot
+
+https://www.qualityology.com/tech/ubuntu-port-53-already-in-use-how-to-free-the-dns-port/
+
+
+
+Доменные записи:
+NS: 
+    Subdomain: t
+    DNS Server: tns.<example.com>
+A:
+    Subdomain: tns
+    IP Address: <196.36.85.13>
+
+
+
+Iodine:
+
+Server:
+# apt update && apt install make pkg-config gcc libz-dev
+
+# git clone https://github.com/yarrick/iodine.git
+# cd iodine
+# make
+# make install
+# screen -S iodine      //optional
+# iodined -f -c -P <PassPhrase> 192.168.32.1/24 t.<example.com>
+
